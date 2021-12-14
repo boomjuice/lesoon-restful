@@ -16,6 +16,7 @@ from lesoon_restful.filters import filters_for_fields
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.utils.common import AttributeDict
 from lesoon_restful.utils.common import convert_dict
+from lesoon_restful.utils.common import ManagerProxy
 
 
 class Manager:
@@ -35,6 +36,9 @@ class Manager:
         self.filters: t.Dict[str, dict] = {}
 
         resource.manager = self
+        if hasattr(model, 'manager') and isinstance(model.manager,
+                                                    ManagerProxy):
+            model.manager.manager = self
 
         self._init_model(resource, model, resource.meta)
         self._init_filters(resource, resource.meta)
@@ -75,10 +79,27 @@ class Manager:
         }
 
     def _convert_filters(self, where: t.Dict[str, str]):
+        """
+        解析过滤条件.
+        e.g: where = {"id": 1}
+                     {"id": {"$gt": 1} }
+        Args:
+            where: 过滤字典
+
+        Returns:
+
+        """
         for name, value in where.items():
             yield convert_filters(value, self.filters[name])
 
     def _convert_sort(self, sort: t.Dict[str, bool]):
+        """
+        解析排序条件.
+        e.g： sort = {"id":true,"name":false}
+        Args:
+            sort: 排序字典
+
+        """
         for name, reverse in sort.items():
             field = self._sort_fields[name]
             yield field, field.attribute or name, reverse
@@ -311,3 +332,7 @@ class QueryManager(Manager):
         if not res:
             raise ItemNotFound('记录不存在')
         return res
+
+    @property
+    def query(self):
+        return self._query()

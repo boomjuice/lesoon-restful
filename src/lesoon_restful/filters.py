@@ -312,8 +312,9 @@ def filters_for_fields(fields: dict,
     return filters
 
 
-def convert_filters(value: t.Any, field_filters: t.Dict[t.Optional[str],
-                                                        BaseFilter]):
+def convert_filters(
+        value: t.Any, field_filters: t.Dict[t.Optional[str],
+                                            BaseFilter]) -> Condition:
     """
     匹配过滤器，调用过滤器转变值函数.
 

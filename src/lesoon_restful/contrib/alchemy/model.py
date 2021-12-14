@@ -10,6 +10,8 @@ from sqlalchemy.sql.schema import Column
 from sqlalchemy.types import DateTime
 from sqlalchemy.types import String
 
+from lesoon_restful.utils.common import ManagerProxy
+
 Model = db.Model
 
 
@@ -79,6 +81,7 @@ class FixedOperatorMixin:
 
 class BaseModel(IdModel, FixedOperatorMixin):
     __abstract__ = True
+    manager: ManagerProxy = ManagerProxy()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -12,11 +12,9 @@ class FixedOperatorSchema:
     modifier = fields.Str(dump_only=True)
     create_time = fields.DateTime(dump_only=True)
     modify_time = fields.DateTime(dump_only=True)
-    update_time = fields.DateTime(dump_only=True)
 
 
-# class MongoAutoSchema(ModelSchema, FixedOperatorSchema):
-class MongoAutoSchema(ModelSchema):
+class MongoAutoSchema(ModelSchema, FixedOperatorSchema):
 
     def load(self, data, *, instance=None, **kwargs):
         if instance:

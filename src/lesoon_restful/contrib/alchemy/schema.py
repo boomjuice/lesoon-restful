@@ -3,7 +3,6 @@ import sqlalchemy as sa
 from flask import Request
 from flask_sqlalchemy import Model
 from lesoon_common.extensions import db
-from lesoon_common.model import fields
 from lesoon_common.utils.str import camelcase
 from marshmallow import EXCLUDE
 from marshmallow import Schema
@@ -12,6 +11,8 @@ from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from marshmallow_sqlalchemy import SQLAlchemySchema
 from sqlalchemy.dialects import mysql
 from sqlalchemy.sql import sqltypes
+
+from lesoon_restful.contrib.alchemy import fields
 
 
 class CustomModelConverter(ModelConverter):

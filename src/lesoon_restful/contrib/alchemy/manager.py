@@ -25,8 +25,8 @@ class SQLAlchemyManager(QueryManager):
 
 
     """
-    FILTER_NAMES = FILTER_NAMES
-    FILTERS_BY_TYPE = FILTERS_BY_TYPE
+    FILTER_NAMES = FILTER_NAMES  # type:ignore
+    FILTERS_BY_TYPE = FILTERS_BY_TYPE  # type:ignore
 
     def _init_model(self, resource: t.Type[ModelResource], model, meta):
         super()._init_model(resource, model, meta)

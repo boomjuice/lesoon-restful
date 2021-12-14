@@ -1,6 +1,6 @@
-# Lesson-common
+# Lesson-Restful
 
-python-restful 服务基础框架
+python 微服务基础框架
 
 # 安装
 

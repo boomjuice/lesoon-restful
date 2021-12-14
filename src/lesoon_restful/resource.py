@@ -161,6 +161,6 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
     class Meta:
         id_attribute: str = 'id'
         id_converter: str = 'int'
-        manager: 'Manager' = None
+        manager: t.Type['Manager'] = None
         filters: bool = True
         sortable: bool = True

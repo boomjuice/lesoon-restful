@@ -28,17 +28,17 @@ class DefaultConfig:
     TRACING_ENABLED = True
     TRACING_JAEGER_CONFIG = {'SERVICE_NAME': 'lesoon-integration'}
 
-    # client相关配置
-    BASE_URL = 'http://scm-istio.lesoon.com/'
-
 
 class Config(DefaultConfig):
     # sqlalchemy
     SQLALCHEMY_DATABASE_URI = 'sqlite:///'
 
-    # jwt
-    JWT_SECRET_KEY = 'COMBELLEeyJh6cFQ6IkpXIPJ9BPETRFP'
-    JWT_ACCESS_TOKEN_EXPIRES = 365 * 24 * 3600
-
-    # debug-toolbar
-    DEBUG_TB_PROFILER_ENABLED = True
+    # mongo
+    MONGODB_SETTINGS = {
+        'db': 'belledoc',
+        'host': 'scm-mongo-dev.belle.net.cn',
+        'port': 27077,
+        'username': 'bldoc',
+        'password': 'blf1#root',
+        'authentication_source': 'admin',
+    }

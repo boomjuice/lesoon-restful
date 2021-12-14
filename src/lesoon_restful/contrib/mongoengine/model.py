@@ -1,88 +1,70 @@
 """ 通用Model基类模块. """
 from datetime import datetime
 
-from lesoon_common.extensions import db
+from lesoon_common.extensions import mg
 from lesoon_common.globals import request
-from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy.dialects.mysql import TINYINT
-from sqlalchemy.sql.expression import text
-from sqlalchemy.sql.schema import Column
-from sqlalchemy.types import DateTime
-from sqlalchemy.types import String
+from mongoengine import fields
+from mongoengine import signals
 
-Model = db.Model
+from lesoon_restful.utils.common import ManagerProxy
 
-
-class IdModel(Model):  # type:ignore
-    __abstract__ = True
-    _default_where = None
-
-    id = Column(BIGINT(20), primary_key=True, comment='ID')
+Document = mg.Document
 
 
 class CompanyMixin:
-    company_id = Column(
-        BIGINT(20),
-        nullable=False,
+    company_id = fields.IntField(
         comment='公司ID',
         default=lambda: request.user.company_id,
     )
 
 
-class StatusMixin:
-    status = Column(TINYINT,
-                    nullable=False,
-                    server_default=text("'1'"),
-                    comment='状态 0-禁用 1-启用')
-
-
-class RemarkMixin:
-    remarks = Column(String(255), comment='备注')
-
-
-class CommonMixin(StatusMixin, RemarkMixin):
-    pass
-
-
 class FixedOperatorMixin:
-    creator = Column(
-        String(20),
-        nullable=False,
+    creator = fields.StringField(
+        max_length=20,
+        required=True,
         comment='创建人',
-        default=lambda: request.user.user_name,
+        default=lambda: '123' or request.user.user_name,
     )
-    create_time = Column(
-        DateTime,
-        nullable=False,
-        server_default=text('CURRENT_TIMESTAMP'),
+    create_time = fields.DateTimeField(
+        required=True,
+        default=datetime.utcnow,
         comment='创建时间',
-        index=True,
     )
-    modifier = Column(
-        String(20),
-        nullable=True,
+    modifier = fields.StringField(
+        max_length=20,
+        null=True,
         comment='修改人',
-        onupdate=lambda: request.user.user_name,
     )
-    modify_time = Column(DateTime,
-                         nullable=True,
-                         comment='修改时间',
-                         onupdate=datetime.now)
-    update_time = Column(
-        DateTime,
-        server_default=text('CURRENT_TIMESTAMP'),
-        server_onupdate=text('CURRENT_TIMESTAMP'),
-        comment='记录更新时间',
-        index=True,
-    )
+    modify_time = fields.DateTimeField(null=True, comment='修改时间')
 
 
-class BaseModel(IdModel, FixedOperatorMixin):
-    __abstract__ = True
+class BaseDocument(Document, FixedOperatorMixin):  # type:ignore
+    meta = {
+        'abstract': True,
+        'indexes': ['create_time', 'modify_time'],
+        'auto_create_index': True,
+    }
+    manager: ManagerProxy = ManagerProxy()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def save(
+        self,
+        force_insert=False,
+        validate=True,
+        clean=True,
+        write_concern=None,
+        cascade=None,
+        cascade_kwargs=None,
+        _refs=None,
+        save_condition=None,
+        signal_kwargs=None,
+        **kwargs,
+    ):
+        self.modifier = '123' or request.user.user_name
+        self.modify_time = datetime.utcnow()
+        return super().save(force_insert, validate, clean, write_concern,
+                            cascade, cascade_kwargs, _refs, save_condition,
+                            signal_kwargs, **kwargs)
 
 
-class BaseCompanyModel(BaseModel, CompanyMixin):
-    __abstract__ = True
+class BaseCompanyDocument(BaseDocument, CompanyMixin):
+    meta = {'abstract': True}

@@ -21,10 +21,15 @@ app.config['MONGODB_SETTINGS'] = {
 me = MongoEngine(app)
 
 
+class AuthorInfo(me.EmbeddedDocument):
+    name = mg_fields.StringField(null=False)
+
+
 class Book(me.Document):
     title = mg_fields.StringField(null=False, unique=True)
     year_published = mg_fields.IntField(null=True)
     rating = mg_fields.IntField(default=5)
+    authors = mg_fields.EmbeddedDocumentListField(document_type=AuthorInfo)
 
 
 class BookSchema(MongoAutoSchema):

@@ -4,10 +4,36 @@ from urllib import parse
 
 from lesoon_restful.exceptions import InvalidJSON
 
+if t.TYPE_CHECKING:
+    from lesoon_restful.manager import Manager
+
 
 class AttributeDict(dict):
-    __getattr__ = dict.__getitem__  # type:ignore
-    __setattr__ = dict.__setitem__  # type:ignore
+
+    def __getattr__(self, key):
+        return self[key]
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+
+class ManagerProxy:
+
+    def __init__(self, manager: 'Manager' = None):
+        self._manager = manager
+
+    @property
+    def manager(self):
+        return self._manager
+
+    @manager.setter
+    def manager(self, value):
+        self._manager = value
+        self.__dir__ = self._manager.__dir__
+        self.__dict__ = self._manager.__dict__
+
+    def __getattr__(self, item):
+        return self._manager.__getattribute__(item)
 
 
 def convert_dict(param: str = None) -> t.Dict[str, t.Any]:

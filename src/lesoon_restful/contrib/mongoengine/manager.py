@@ -18,8 +18,8 @@ class MongoEngineManager(QueryManager):
     A manager for MongoEngine documents.
 
     """
-    FILTER_NAMES = FILTER_NAMES
-    FILTERS_BY_TYPE = FILTERS_BY_TYPE
+    FILTER_NAMES = FILTER_NAMES  # type:ignore
+    FILTERS_BY_TYPE = FILTERS_BY_TYPE  # type:ignore
 
     def __init__(self, resource, model):
         super().__init__(resource, model)
