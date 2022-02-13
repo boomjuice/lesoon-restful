@@ -34,11 +34,4 @@ class Config(DefaultConfig):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///'
 
     # mongo
-    MONGODB_SETTINGS = {
-        'db': 'belledoc',
-        'host': 'scm-mongo-dev.belle.net.cn',
-        'port': 27077,
-        'username': 'bldoc',
-        'password': 'blf1#root',
-        'authentication_source': 'admin',
-    }
+    MONGODB_SETTINGS = {'host': 'mongomock://localhost'}

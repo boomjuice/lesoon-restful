@@ -8,8 +8,9 @@ from flask import request
 from werkzeug.wrappers import BaseResponse
 
 from .resource import ModelResource
-from lesoon_restful.manager import Manager
-from lesoon_restful.routes import Route
+from .resource import Resource
+from lesoon_restful.route import Route
+from lesoon_restful.service import Service
 from lesoon_restful.utils.req import unpack
 
 
@@ -21,7 +22,7 @@ class Api:
         app: a :class:`Flask` instance
         decorators: 装饰器列表
         prefix: API前缀
-        default_manager: 默认的Manager类, 未提供则为:class:`contrib.alchemy.SQLAlchemyManager`
+        default_service: 默认的service类, 未提供则为:class:`dbengine.alchemy.SQLAlchemyService`
 
     """
 
@@ -29,22 +30,19 @@ class Api:
                  app: t.Union[Flask, Blueprint] = None,
                  decorators: t.List[t.Callable] = None,
                  prefix: str = None,
-                 default_manager: t.Type[Manager] = None):
+                 default_service: t.Type[Service] = None):
         self.app = app
         self.blueprint = None
         self.prefix = prefix or ''
         self.decorators = decorators or []
-        self.default_manager = default_manager
+        self.default_service = default_service
 
-        self.resources: t.Dict[str, t.Type[ModelResource]] = {}
+        self.resources: t.Dict[str, t.Type[Resource]] = {}
         self.views: t.List[tuple] = []
 
-        if self.default_manager is None:
-            try:
-                from lesoon_restful.contrib.alchemy import SQLAlchemyManager
-                self.default_manager = SQLAlchemyManager
-            except ImportError:
-                pass
+        if self.default_service is None:
+            from lesoon_restful.dbengine.alchemy import SQLAlchemyService
+            self.default_service = SQLAlchemyService
 
         if app is not None:
             self.init_app(app)
@@ -71,15 +69,18 @@ class Api:
     def _init_app(self, app: Flask):
         for route, resource, view_func, endpoint, methods in self.views:
             rule = route.rule_factory(resource)
-            self._register_view(app, rule, view_func, endpoint, methods)
+            self._register_view(app, rule, route.skip_api_decorators, view_func,
+                                endpoint, methods)
 
-    def _register_view(self, app, rule: str, view_func: t.Callable,
-                       endpoint: str, methods: t.List[str]):
+    def _register_view(self, app, rule: str, skip_decorators: bool,
+                       view_func: t.Callable, endpoint: str,
+                       methods: t.List[str]):
         """
         将视图函数与路由绑定
 
         Args:
             app: a :class:`Flask` instance
+            skip_decorators: 是否忽略装饰器
             rule: 路由
             view_func: 视图函数
             endpoint: 端点
@@ -92,8 +93,9 @@ class Api:
 
         view_func = self.output(view_func)
 
-        for decorator in self.decorators:
-            view_func = decorator(view_func)
+        if not skip_decorators:
+            for decorator in self.decorators:
+                view_func = decorator(view_func)
 
         app.add_url_rule(rule,
                          view_func=view_func,
@@ -109,25 +111,15 @@ class Api:
             if isinstance(resp, BaseResponse):
                 return resp
 
-            representations = (
-                view.__resource__.representations  # noqa
-                or OrderedDict())
-
-            media_type = request.accept_mimetypes.best_match(representations,
-                                                             default=None)
-            if media_type in representations:
-                data, code, headers = unpack(resp)
-                resp = representations[media_type](data, code, headers)
-                resp.headers['Content-Type'] = media_type
-                return resp
-
-            return resp
+            data, code, headers = unpack(resp)
+            headers['Content-Type'] = 'application/json'
+            return data, code, headers
 
         return wrapper
 
     def add_route(self,
                   route: Route,
-                  resource: t.Type[ModelResource],
+                  resource: t.Type[Resource],
                   endpoint: str = None,
                   decorator: t.Callable = None):
         endpoint = endpoint or '_'.join((resource.meta.name, route.relation))
@@ -140,15 +132,16 @@ class Api:
             view_func = decorator(view_func)
 
         if self.app and not self.blueprint:
-            self._register_view(self.app, rule, view_func, endpoint, methods)
+            self._register_view(self.app, rule, route.skip_api_decorators,
+                                view_func, endpoint, methods)
         else:
             self.views.append((route, resource, view_func, endpoint, methods))
 
-    def add_resource(self, resource: t.Type[ModelResource]):
+    def add_resource(self, resource: t.Type[Resource]):
         """
         注册资源，添加资源中所有路由规则
         Args:
-            resource: :class:`ModelResource`
+            resource: :class:`Resource`
 
         """
         if resource in self.resources.values():
@@ -158,13 +151,12 @@ class Api:
         if resource.api is not None and resource.api != self:
             raise RuntimeError(f'{resource}已绑定Api({resource.api}),无法绑定其他Api.')
 
-        if issubclass(resource, ModelResource) and resource.manager is None:
-            if self.default_manager:
-                resource.manager = self.default_manager(
-                    resource, resource.meta.get('model'))
+        if issubclass(resource, ModelResource) and resource.service is None:
+            if self.default_service:
+                resource.service = self.default_service(resource.meta, resource)
             else:
                 raise RuntimeError(
-                    f'{resource.meta.name} 未设置manager类, 并且默认manager无法初始化. '
+                    f'{resource.meta.name} 未设置service类, 并且默认service无法初始化. '
                     f'如果需要使用Sqlalchemy,请确保Flask-SQLAlchemy已安装.')
 
         resource.api = self

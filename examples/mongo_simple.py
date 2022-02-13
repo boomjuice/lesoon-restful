@@ -1,17 +1,16 @@
 from lesoon_common import LesoonFlask
+from lesoon_common.extensions import mg
+from lesoon_common.model import MongoAutoSchema
 from mongoengine import fields as mg_fields
 
 from lesoon_restful import Api
 from lesoon_restful import ModelResource
-from lesoon_restful.contrib.mongoengine.manager import MongoEngineManager
-from lesoon_restful.contrib.mongoengine.model import BaseDocument
-from lesoon_restful.contrib.mongoengine.schema import MongoAutoSchema
+from lesoon_restful.dbengine.mongoengine.service import MongoEngineService
 
 app = LesoonFlask(__name__)
-app.debug = True
 
 
-class Book(BaseDocument):
+class Book(mg.Document):
     title = mg_fields.StringField(null=False, unique=True)
     year_published = mg_fields.IntField(null=True)
     rating = mg_fields.IntField(default=5)
@@ -31,11 +30,10 @@ class BookResource(ModelResource):
         id_converter = 'string'
 
 
-api = Api(app, default_manager=MongoEngineManager)
+api = Api(app, default_service=MongoEngineService)
 api.add_resource(BookResource)
 
 if __name__ == '__main__':
     import pprint
-
     pprint.pprint(sorted(app.url_map.iter_rules(), key=lambda x: x.rule))
     app.run()

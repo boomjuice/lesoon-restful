@@ -1,21 +1,21 @@
 import inspect
 import json
 import typing as t
-from collections import OrderedDict
 
+import marshmallow as ma
 from lesoon_common.globals import request
 from lesoon_common.response import success_response
-from marshmallow import INCLUDE
-from marshmallow import Schema
-from webargs.flaskparser import use_args
+from lesoon_common.schema import ListOrNotSchema
+from webargs import fields
 
-from lesoon_restful.routes import ItemRoute
-from lesoon_restful.routes import Route
+from lesoon_restful.parser import use_args
+from lesoon_restful.route import ItemRoute
+from lesoon_restful.route import Route
 from lesoon_restful.utils.common import AttributeDict
 
 if t.TYPE_CHECKING:
     from lesoon_restful.api import Api
-    from lesoon_restful.manager import Manager
+    from lesoon_restful.service import Service
 
 
 class ResourceMeta(type):
@@ -28,30 +28,30 @@ class ResourceMeta(type):
         class_.meta = meta = AttributeDict(  # type:ignore
             getattr(class_, 'meta') or {})
 
-        def append_route(routes: t.Dict[str, Route], route: Route, name: str):
+        def append_route(routes_: t.Dict[str, Route], route: Route, name_: str):
             if route.attribute is None:
-                route.attribute = name
+                route.attribute = name_
 
-            for r in route._related_routes:
+            for r in route._related_routes:  # noqa
                 if r.attribute is None:
-                    r.attribute = name
-                routes[r.relation] = r
+                    r.attribute = name_
+                routes_[r.relation] = r
 
-            routes[route.relation] = route
+            routes_[route.relation] = route
 
         for base in bases:
             # 继承父类路由规则
-            for name, member in inspect.getmembers(
+            for mem_name, member in inspect.getmembers(
                     base, lambda m: isinstance(m, Route)):
-                append_route(routes, member, name)
+                append_route(routes, member, mem_name)
 
-            if hasattr(base, 'Meta'):
-                meta.update(base.Meta.__dict__)
+            if hasattr(base, 'meta'):
+                meta.update(base.meta)
 
         # 添加当前类路由规则
-        for name, member in members.items():
+        for mem_name, member in members.items():
             if isinstance(member, Route):
-                append_route(routes, member, name)
+                append_route(routes, member, mem_name)
 
         # 更新meta
         if 'Meta' in members:
@@ -61,12 +61,9 @@ class ResourceMeta(type):
                     meta[k] = v
 
             if not changes.get('name', None):
-                meta['name'] = name.lower()
+                meta['name'] = name
         else:
-            meta['name'] = name.lower()
-
-        if schema := meta.get('schema', None):
-            class_.schema = schema()  # type:ignore
+            meta['name'] = name
 
         if meta.exclude_routes:
             for relation in meta.exclude_routes:
@@ -79,28 +76,7 @@ class Resource(metaclass=ResourceMeta):
     api: 'Api' = None
     meta: AttributeDict = None
     routes: t.Dict[str, Route] = None
-    schema: Schema = None
     route_prefix: str = None
-    representations: OrderedDict = None
-
-    @Route.GET('/schema', rel='describedBy', attribute='schema')
-    def described_by(self):
-        fields = {
-            name: field.__class__.__name__
-            for name, field in self.schema.fields.items()
-        }
-        schema = OrderedDict({
-            'title': self.meta.get('title'),
-            'description': self.meta.get('description'),
-            'name': self.meta.get('name'),
-            'resource': self.__class__.__name__,
-            'schema': self.schema.__class__.__name__,
-            'fields': fields,
-        })
-
-        return json.dumps(schema), 200, {
-            'Content-Type': 'application/schema+json'
-        }
 
     class Meta:
         name: str = None
@@ -115,52 +91,106 @@ class ModelResourceMeta(ResourceMeta):
 
     def __new__(mcs, name, bases, members):
         class_ = super().__new__(mcs, name, bases, members)
+        meta = class_.meta
 
-        if 'Meta' in members:
-            meta = class_.meta
-            changes = members['Meta'].__dict__
+        if meta.service:
+            for k, v in meta.service.meta.items():
+                # service中的定义大于resource中的定义
+                if v:
+                    meta[k] = v
+            class_.service = meta.service(meta, resource=class_)
 
-            if 'model' in changes or 'model' in meta and 'manager' in changes:
-                if meta.manager is not None:
-                    class_.manager = meta.manager(class_, meta.model)
+        if meta.schema:
+            class_.schema = meta.schema()
+
         return class_
 
 
 class ModelResource(Resource, metaclass=ModelResourceMeta):
-    manager: 'Manager' = None
+    service: 'Service' = None
+    schema: ma.Schema = None
+
+    @Route.GET('/schema', rel='schema', attribute='schema')
+    def model_schema(self):
+        schema = {
+            'title':
+                self.meta.get('title'),
+            'description':
+                self.meta.get('description'),
+            'name':
+                self.meta.get('name'),
+            'resource':
+                self.__class__.__name__,
+            'schema':
+                self.schema.__class__.__name__,
+            'fields': {
+                name: field.__class__.__name__
+                for name, field in self.schema.fields.items()
+            },
+            'links': [
+                f'{route.method} : {route.rule_factory(self)}'
+                for route in self.routes.values()
+            ]
+        }
+
+        return json.dumps(schema)
 
     @Route.GET('', rel='instances')
     def instances(self):
-        page_params = self.manager.parse_request(request)
-        res = self.manager.paginated_instances(**page_params)
-        return success_response(result=self.manager.deserialize_instance(
-            res.items, many=True),
-                                total=res.total)
-
-    @Route.POST('', rel='create')
-    @use_args(Schema(unknown=INCLUDE), location='json')
-    def create(self, properties):
-        item = self.manager.create(properties)
-        return success_response(self.manager.deserialize_instance(item))
+        pagination = self.service.paginated_instances()
+        results = self.schema.dump(pagination.items, many=True)
+        return success_response(result=results, total=pagination.total)
 
     @ItemRoute.GET('', rel='instance')
-    def read(self, item):
-        return success_response(self.manager.deserialize_instance(item))
+    def read(self, item: object):
+        return success_response(self.schema.dump(item))
 
-    @ItemRoute.PUT('', rel='update')
-    @use_args(Schema(unknown=INCLUDE), location='json')
-    def update_instance(self, item, properties):
-        updated_item = self.manager.update(item, properties)
-        return success_response(self.manager.deserialize_instance(updated_item))
+    @Route.POST('', rel='create_entrance')
+    @use_args(ListOrNotSchema(unknown=ma.INCLUDE), location='json')
+    def create(self, properties: t.Union[dict, t.List[dict]]):
+        item = self.service.create(properties)
+        return success_response(result=self.schema.dump(item), msg='新建成功')
 
-    @ItemRoute.DELETE('', rel='delete')
+    @ItemRoute.POST('', rel='create_instance')
+    @use_args(ma.Schema(unknown=ma.INCLUDE), location='json')
+    def create_instance(self, item: object):
+        item = self.service._create_one(item=item)
+        return success_response(result=self.schema.dump(item), msg='新建成功')
+
+    @Route.PUT('', rel='update_entrance')
+    @use_args(ListOrNotSchema(unknown=ma.INCLUDE), location='json')
+    def update(self, properties: t.Union[dict, t.List[dict]]):
+        item = self.service.update(properties)
+        return success_response(self.schema.dump(item), msg='更新成功')
+
+    @ItemRoute.PUT('', rel='update_instance')
+    @use_args(ma.Schema(unknown=ma.INCLUDE), location='json')
+    def update_instance(self, item: object, properties: dict):
+        item = self.service._update_one(item, properties)
+        return success_response(result=self.schema.dump(item), msg='更新成功')
+
+    @Route.DELETE('', rel='delete_entrance')
+    @use_args({'ids': fields.DelimitedList(fields.Raw())},
+              as_kwargs=True,
+              location='query')
+    @use_args({'ids': fields.List(fields.Raw())},
+              as_kwargs=True,
+              location='list_json')
+    def delete(self, ids: t.List[str]):
+        self.service.delete(ids)
+        return success_response(msg='删除成功')
+
+    @ItemRoute.DELETE('', rel='delete_instance')
     def delete_instance(self, item):
-        self.manager.delete(item)
-        return success_response()
+        id_ = getattr(item, self.service.id_attribute)
+        self.service._delete_one(id_)
+        return success_response(msg='删除成功')
 
     class Meta:
         id_attribute: str = 'id'
         id_converter: str = 'int'
-        manager: t.Type['Manager'] = None
-        filters: bool = True
+        schema: t.Type[ma.Schema] = None
+        model: t.Any = None
+        filters: t.Union[bool, dict] = True
         sortable: bool = True
+        service: t.Type['Service'] = None

@@ -8,6 +8,16 @@ from lesoon_restful import ModelResource
 from lesoon_restful.dbengine.mongoengine.service import MongoEngineService
 
 app = LesoonFlask(__name__)
+app.debug = True
+app.config['MONGODB_SETTINGS'] = {
+    'db': 'belledoc',
+    'host': 'scm-mongo-dev.belle.net.cn',
+    'port': 27077,
+    'username': 'bldoc',
+    'password': 'blf1#root',
+    'authentication_source': 'admin',
+}
+
 me = MongoEngine(app)
 
 

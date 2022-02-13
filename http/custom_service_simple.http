@@ -1,0 +1,51 @@
+GET http://localhost:5000/book?where={"rating":{"eq":1}}&sort={"rating":true}
+token: eyJhbGciOiJkaXIiLCJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIn0..K9lBdGdXqC2bgg9w-Viieg.YbiCz_vENhG703sjIN0Y2YCfJO2MwV2UcndZsTw-yVV11wluSjvhhtwQjWc4etgGdG8Qj-ZoeyFatXoynf7dgQphWGFhymptRbZLIibXDk_yUBCz34lE38S_oJKSWY1SqTZ-QfNGvR2dYKd9YGmlgSnUDv3u3hPKDwynavVFtUwoJUJ3eA5cg9Z4K2bFUs0v70Yg2lSVGcUpIWL5sQ66UJ7s5wb3sGG36shuGRatrU0Aai3vd7luykUyIJvLjIdH_8FLOmGNwz4BzhBYh_DV9OoGK8cACw1sqe1hWNurwkDteug3GLnVrJJZGCFSLTGh0LrKmAVTIHuN-TsH9KwCURdktJrO2f62Fis2LsQ1t1sX1m-PoIOUpyxl5X8gle5-VJFnxpTvEmHTuhBSwq1qbwYpnFtiiId7l11wfeAGvrRhsBXlSIOdM5LR15jNTejPD8eIEBIyEchUP26PaguGYM9C99zoBqFbr_PTxsL-CCRx_439FqlVMYF9djZueJWmrNWdhe5RDJ3dYKT4_Caqxtjet_wWx68De1RdmP5hi7C_wQZEtgZs_Fip7PASqCgsrI0JHAH46HXlZ6iYw5JJQMQwTR6Q6Ejp9Ym56yQBEs7FJeZ9o9ZdgYoHikZk_lquWey21IzpbY3nopM7TZrRWrNG45AMxe6GFgPF2o1ez2ikAf3VI6nWKYLTThJ1i5QC15PmfMlgR6HY5lEfvYZ-cc_0f6thaCVBHsEyy064ReLH7HfI8XNTOowDCazFqo8ImV_3wW1b2CcBzxhUCMJnX3082QYQgSwqpF7-7eXD5ZxfbwUCSOK-yQ.xtn-LW_B1J7XSuPpgiV5aQ
+
+
+
+
+###
+POST http://localhost:5000/book/
+Content-Type: application/json
+
+{
+  "title": "测试数据-{{$timestamp}}",
+  "year_published": "{{$randomInt}}"
+
+}
+
+
+###
+GET http://localhost:5000/book/1/
+
+
+###
+PUT http://localhost:5000/book/1/
+Content-Type: application/json
+
+{
+    "rating": 4
+}
+
+
+
+###
+DELETE http://localhost:5000/book/619caaffd106968e36977957/
+
+###
+GET http://localhost:5000/book/1/rating
+
+
+###
+GET http://localhost:5000/book/schema
+
+###
+POST http://localhost:18000/book/create/book
+Content-Type: application/json
+
+
+###
+POST http://localhost:5000/book/writeOff
+Content-Type: application/json
+
+[1,2,3]

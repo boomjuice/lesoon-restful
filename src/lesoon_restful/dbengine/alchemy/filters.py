@@ -1,90 +1,67 @@
 from marshmallow import fields as ma_fields
 
-import lesoon_restful.filters as filters
+from lesoon_restful import filters
 
-
-class EqualFilter(filters.EqualFilter):
-
-    def op(self, value):
-        return {self.attribute: value}
-
-
-class NotEqualFilter(filters.NotEqualFilter):
-
-    def op(self, value):
-        return {f'{self.attribute}__ne': value}
-
-
-class LessThanFilter(filters.LessThanFilter):
-
-    def op(self, value):
-        return {f'{self.attribute}__lt': value}
-
-
-class LessThanEqualFilter(filters.LessThanEqualFilter):
-
-    def op(self, value):
-        return {f'{self.attribute}__lte': value}
-
-
-class GreaterThanFilter(filters.GreaterThanFilter):
-
-    def op(self, value):
-        return {f'{self.attribute}__gt': value}
-
-
-class GreaterThanEqualFilter(filters.GreaterThanEqualFilter):
-
-    def op(self, value):
-        return {f'{self.attribute}__gte': value}
+EqualFilter = filters.EqualFilter
+NotEqualFilter = filters.NotEqualFilter
+LessThanFilter = filters.LessThanFilter
+LessThanEqualFilter = filters.LessThanEqualFilter
+GreaterThanFilter = filters.GreaterThanFilter
+GreaterThanEqualFilter = filters.GreaterThanEqualFilter
 
 
 class InFilter(filters.InFilter):
 
-    def op(self, values):
-        return {f'{self.attribute}__in': values}
+    def op(self, column, value):
+        return column.in_(value) if len(value) else False
 
 
 class ContainsFilter(filters.ContainsFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__contains': value}
+    def op(self, column, value):
+        return column.contains(value)
 
 
 class StringContainsFilter(filters.StringContainsFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__contains': value}
+    def op(self, column, value):
+        return column.like('%' + value.replace('%', '\\%') + '%')
 
 
 class StringIContainsFilter(filters.StringIContainsFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__icontains': value}
+    def op(self, column, value):
+        return column.ilike('%' + value.replace('%', '\\%') + '%')
 
 
 class StartsWithFilter(filters.StartsWithFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__startswith': value}
+    def op(self, column, value):
+        return column.startswith(value.replace('%', '\\%'))
 
 
 class IStartsWithFilter(filters.IStartsWithFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__istartswith': value}
+    def op(self, column, value):
+        return column.ilike(value.replace('%', '\\%') + '%')
 
 
 class EndsWithFilter(filters.EndsWithFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__endswith': value}
+    def op(self, column, value):
+        return column.endswith(value.replace('%', '\\%'))
 
 
 class IEndsWithFilter(filters.IEndsWithFilter):
 
-    def op(self, value):
-        return {f'{self.attribute}__iendswith': value}
+    def op(self, column, value):
+        return column.ilike('%' + value.replace('%', '\\%'))
+
+
+class DateBetweenFilter(filters.DateBetweenFilter):
+
+    def op(self, column, value):
+        return column.between(value[0], value[1])
 
 
 CommonFilters = (EqualFilter, NotEqualFilter, InFilter)
@@ -92,6 +69,7 @@ NumberFilters = (LessThanFilter, LessThanEqualFilter, GreaterThanFilter,
                  GreaterThanEqualFilter)
 StringFilters = (StringContainsFilter, StringIContainsFilter, StartsWithFilter,
                  IStartsWithFilter, EndsWithFilter, IEndsWithFilter)
+DateTypeFilters = (DateBetweenFilter,)
 
 FILTER_NAMES = (
     (EqualFilter, None),
@@ -109,13 +87,16 @@ FILTER_NAMES = (
     (IStartsWithFilter, 'istartswith'),
     (EndsWithFilter, 'endswith'),
     (IEndsWithFilter, 'iendswith'),
+    (DateBetweenFilter, 'between'),
 )
 
-FILTERS_BY_TYPE = (
+FILTERS_BY_FIELD = (
     (ma_fields.Boolean, CommonFilters),
     (ma_fields.Number, CommonFilters + NumberFilters),
     (ma_fields.Float, CommonFilters + NumberFilters),
     (ma_fields.Decimal, CommonFilters + NumberFilters),
     (ma_fields.String, CommonFilters + StringFilters),
-    (ma_fields.List, (ContainsFilter,)),
+    (ma_fields.Date, CommonFilters + NumberFilters + DateTypeFilters),
+    (ma_fields.DateTime, CommonFilters + NumberFilters + DateTypeFilters),
+    (ma_fields.List, ContainsFilter),
 )

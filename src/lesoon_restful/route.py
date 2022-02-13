@@ -6,7 +6,7 @@ from lesoon_common.utils.str import camelcase
 from werkzeug.utils import cached_property
 
 if t.TYPE_CHECKING:
-    from lesoon_restful.resource import ModelResource
+    from lesoon_restful.resource import Resource
 
 HTTP_METHODS = ('GET', 'PUT', 'POST', 'DELETE')
 
@@ -15,7 +15,7 @@ def _route_decorator(method: str):
     # 类路由方法设置
     def decorator(cls, *args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
-            return cls(method, args[0])
+            return cls(method=method, view_func=args[0])
         else:
             return lambda f: cls(method, f, *args, **kwargs)
 
@@ -45,15 +45,9 @@ class Route:
         rule: 路由路径
         attribute: 属性
         rel: 路由描述
+        skip_api_decorators: 是否跳过全局装饰器
 
     """
-    HTTP_METHOD_VERB_DEFAULTS = {
-        'GET': 'read',
-        'POST': 'create',
-        'PUT': 'update',
-        'DELETE': 'delete'
-    }
-
     GET = _route_decorator('GET')
     POST = _route_decorator('POST')
     PUT = _route_decorator('PUT')
@@ -65,11 +59,13 @@ class Route:
                  rule: t.Union[str, t.Callable] = None,
                  attribute: str = None,
                  rel: str = None,
+                 skip_api_decorators: bool = False,
                  **kwargs):
         self.rel = rel
         self.rule = rule
         self.method = method
         self.attribute = attribute
+        self.skip_api_decorators = skip_api_decorators
 
         self.view_func = view_func
 
@@ -80,21 +76,28 @@ class Route:
                     MethodType(_method_decorator(http_method), self))
 
     @cached_property
-    def relation(self):
+    def relation(self) -> str:
         if self.rel:
             return self.rel
         else:
-            verb = self.HTTP_METHOD_VERB_DEFAULTS.get(self.method,
-                                                      self.method.lower())
-            return camelcase(f'{verb}_{self.attribute}')
+            return camelcase(self.attribute)
 
     def __get__(self, obj, owner):
         if obj is None:
             return self
-        return lambda *args, **kwargs: self.view_func(obj, *args, **kwargs)
+        return lambda *args, **kwargs: self.view_func.__call__(
+            obj, *args, **kwargs)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({repr(self.rule)})'
+
+    def __eq__(self, other: object):
+        if not isinstance(other, self.__class__):
+            raise NotImplemented
+        return all([
+            self.attribute == other.attribute, self.method == other.method,
+            self.rule == other.rule
+        ])
 
     def _for_method(self,
                     method: str,
@@ -114,8 +117,8 @@ class Route:
         return instance
 
     def rule_factory(self,
-                     resource: t.Type['ModelResource'],
-                     relative: bool = False):
+                     resource: t.Type['Resource'],
+                     relative: bool = False) -> str:
         """
         路由规则工厂.
 
@@ -135,9 +138,10 @@ class Route:
         if relative or resource.route_prefix is None:
             return rule
 
-        return '/'.join((resource.route_prefix, rule))
+        return '/'.join((resource.route_prefix, rule)).replace('//', '/')
 
-    def view_factory(self, name: str, resource: t.Type['ModelResource']):
+    def view_factory(self, name: str,
+                     resource: t.Type['Resource']) -> t.Callable:
         """
         视图函数工厂.
         注：因为`Flask`本身不支持类方法的路由,此处需要套一层装饰器
@@ -157,6 +161,7 @@ class Route:
             return decorator
 
         view = make_func(self.view_func)
+        view.__name__ = self.view_func.__name__
         view.__module__ = resource.__module__
         view.__doc__ = resource.__doc__
         view.__resource__ = resource
@@ -173,7 +178,7 @@ class ItemRoute(Route):
     """
 
     def rule_factory(self,
-                     resource: t.Type['ModelResource'],
+                     resource: t.Type['Resource'],
                      relative: bool = False):
         id_matcher = f'<{resource.meta.id_converter}:id>'
 
@@ -187,14 +192,15 @@ class ItemRoute(Route):
         if relative or resource.route_prefix is None:
             return rule
 
-        return '/'.join((resource.route_prefix, id_matcher, rule))
+        return '/'.join(
+            (resource.route_prefix, id_matcher, rule)).replace('//', '/')
 
-    def view_factory(self, name: str, resource: t.Type['ModelResource']):
+    def view_factory(self, name: str, resource: t.Type['Resource']):
         original_view = super().view_factory(name, resource)
 
         def view(*args, **kwargs):
             id = kwargs.pop(resource.meta.id_attribute)
-            item = resource.manager.read(id)
+            item = resource.service.read_or_raise(id)
             return original_view(item, *args, **kwargs)
 
         view.__resource__ = getattr(  # type:ignore

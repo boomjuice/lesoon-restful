@@ -1,10 +1,11 @@
 Flask>=2.0.1
 flask_mongoengine>=1.0.0
 Flask_SQLAlchemy>=2.5.1
-lesoon_common>=0.0.2
+lesoon_common==0.0.3
 marshmallow>=3.14.0
 marshmallow_mongoengine>=0.30.2
 marshmallow_sqlalchemy>=0.26.1
+mongoengine>=0.23.1
 SQLAlchemy>=1.4.18
 webargs>=8.0.1
 Werkzeug>=2.0.1

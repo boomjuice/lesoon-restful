@@ -1,0 +1,43 @@
+GET http://localhost:5000/book?where={"rating":{"$lte":5}}&sort={"rating":true}
+
+
+###
+POST http://localhost:5000/book
+Content-Type: application/json
+
+[{
+  "title": "测试数据-{{$randomInt}}",
+  "year_published": "{{$randomInt}}"
+},
+  {"title": "测试数据-{{$randomInt}}",
+  "year_published": "{{$randomInt}}"
+
+}]
+
+###
+PUT http://localhost:5000/book
+Content-Type: application/json
+
+[
+    {
+        "id": 1,
+        "rating": 2,
+        "title": "测试数据-39",
+        "year_published": 585
+    },
+    {
+        "id": 2,
+        "rating": 3,
+        "title": "测试数据-569",
+        "year_published": 253
+    }
+]
+
+###
+DELETE http://localhost:5000/book?ids=1,2
+Content-Type: application/json
+
+
+###
+DELETE http://localhost:5000/book/1/
+Content-Type: application/json
