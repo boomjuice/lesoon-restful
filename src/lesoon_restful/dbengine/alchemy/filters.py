@@ -88,6 +88,12 @@ FILTER_NAMES = (
     (EndsWithFilter, 'endswith'),
     (IEndsWithFilter, 'iendswith'),
     (DateBetweenFilter, 'between'),
+    # TODO: JAVA体系定义
+    (ContainsFilter, 'like'),
+    (StringContainsFilter, 'like'),
+    (StringIContainsFilter, 'ilike'),
+    (StartsWithFilter, 'prefixLike'),
+    (EndsWithFilter, 'suffixLike'),
 )
 
 FILTERS_BY_FIELD = (

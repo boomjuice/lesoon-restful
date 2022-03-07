@@ -103,6 +103,24 @@ def parse_model_attribute(
     return attr
 
 
+def parse_valid_model_attribute(
+    name: str, model: t.Union[TableType, t.Type[Model]]
+) -> t.Union[Column, InstrumentedAttribute]:
+    """
+       根据 model,name获取模型的字段对象,不存在就抛异常
+
+       Args:
+           model: sqlalchemy.Model
+           name: 字段名
+       Returns:
+            attr: 字段名对应的Column实例对象
+       """
+    attr = parse_model_attribute(name=udlcase(name), model=model)
+    if not attr:
+        raise FilterInvalid(msg=f'表模型: {model.__name__} 不存在列名为:{name}的列')
+    return attr
+
+
 def parse_query_related_models(query: LesoonQuery) -> t.List[TableType]:
     """获取Query对象查询涉及的所有表"""
     related_models: t.List[TableType] = list()

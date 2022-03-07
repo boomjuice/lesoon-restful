@@ -7,7 +7,7 @@ from webargs.core import Request
 from webargs.flaskparser import FlaskParser
 
 
-class LesoonParser(FlaskParser):
+class WebArgParser(FlaskParser):
     __location_map__ = dict(
         list_json='load_list_json',
         **FlaskParser.__location_map__,
@@ -36,14 +36,14 @@ class LesoonParser(FlaskParser):
             return self._makeproxy(new_data, schema)
 
 
-class CamelParser(LesoonParser):
+class CamelArgParser(WebArgParser):
     DEFAULT_SCHEMA_CLASS = CamelSchema
 
 
-parser = LesoonParser()
+parser = WebArgParser()
 use_args = parser.use_args
 use_kwargs = parser.use_kwargs
 
-camel_parser = CamelParser()
+camel_parser = CamelArgParser()
 ca_use_args = camel_parser.use_args
 ca_use_kwargs = camel_parser.use_kwargs

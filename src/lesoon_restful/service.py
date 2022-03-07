@@ -17,14 +17,8 @@ from lesoon_restful.filters import FILTER_NAMES
 from lesoon_restful.filters import FILTERS_BY_FIELD
 from lesoon_restful.filters import filters_for_fields
 from lesoon_restful.resource import ModelResource
-from lesoon_restful.signals import after_create
-from lesoon_restful.signals import after_delete
-from lesoon_restful.signals import after_update
-from lesoon_restful.signals import before_create
-from lesoon_restful.signals import before_delete
-from lesoon_restful.signals import before_update
 from lesoon_restful.utils.common import AttributeDict
-from lesoon_restful.utils.common import convert_dict
+from lesoon_restful.utils.common import convert_sort
 from lesoon_restful.utils.common import convert_where
 
 if t.TYPE_CHECKING:
@@ -172,7 +166,7 @@ class Service(metaclass=ServiceMeta):
 
         """
         where_dict = convert_where(request.args.get('where'))
-        sort_dict = convert_dict(request.args.get('sort'))
+        sort_dict = convert_sort(request.args.get('sort'))
 
         where = tuple(self._convert_filters(where_dict))
         sort = tuple(self._convert_sort(sort_dict))
@@ -248,50 +242,25 @@ class Service(metaclass=ServiceMeta):
         except IndexError:
             raise ItemNotFound()
 
-    @classmethod
-    def before_create(cls, f: t.Callable[
-        [t.Type['Service'], 'Service', t.Union[t.Any, t.List[t.Any]]], None]):
-        before_create.connect(f, sender=cls, weak=False)
-        return f
+    def before_create(self, items: t.Union[t.Any, t.List[t.Any]]):
+        pass
 
-    @classmethod
-    def after_create(cls, f: t.Callable[
-        [t.Type['Service'], 'Service', t.Union[t.Any, t.List[t.Any]]], None]):
-        after_create.connect(f, sender=cls, weak=False)
-        return f
+    def after_create(self, items: t.Union[t.Any, t.List[t.Any]]):
+        pass
 
-    @classmethod
-    def before_update(cls, f: t.Callable[[
-        t.Type['Service'], 'Service', t.Union[t.Any, t.List[t.Any]], t.Union[
-            dict, t.List[dict]]
-    ], None]):
-        before_update.connect(f, sender=cls, weak=False)
-        return f
+    def before_update(self, items: t.Union[t.Any, t.List[t.Any]],
+                      changes: t.Union[dict, t.List[dict]]):
+        pass
 
-    @classmethod
-    def after_update(cls, f: t.Callable[[
-        t.Type['Service'], 'Service', t.Union[t.Any, t.List[t.Any]], t.Union[
-            dict, t.List[dict]]
-    ], None]):
-        after_update.connect(f, sender=cls, weak=False)
-        return f
+    def after_update(self, items: t.Union[t.Any, t.List[t.Any]],
+                     changes: t.Union[dict, t.List[dict]]):
+        pass
 
-    @classmethod
-    def before_delete(
-        cls,
-        f: t.Callable[[t.Type['Service'], 'Service', t.Union[int, t.List[int]]],
-                      None]):
+    def before_delete(self, ids: t.Union[int, t.List[int]]):
+        pass
 
-        before_delete.connect(f, sender=cls, weak=False)
-        return f
-
-    @classmethod
-    def after_delete(
-        cls,
-        f: t.Callable[[t.Type['Service'], 'Service', t.Union[int, t.List[int]]],
-                      None]):
-        after_delete.connect(f, sender=cls, weak=False)
-        return f
+    def after_delete(self, ids: t.Union[int, t.List[int]]):
+        pass
 
     def create(self, properties: t.Union[dict, t.List[dict]]):
         """
@@ -314,15 +283,15 @@ class Service(metaclass=ServiceMeta):
             return self.create_many(items=items)
 
     def create_one(self, item: t.Any):
-        before_create.send(self.__class__, service=self, items=item)
+        self.before_create(items=item)
         item = self._create_one(item)
-        after_create.send(self.__class__, service=self, items=item)
+        self.after_create(items=item)
         return item
 
     def create_many(self, items: t.List[t.Any]):
-        before_create.send(self.__class__, service=self, items=items)
+        self.before_create(items=items)
         items = self._create_many(items)
-        after_create.send(self.__class__, service=self, items=items)
+        self.after_create(items=items)
         return items
 
     def _create_one(self, item: t.Any):
@@ -354,27 +323,15 @@ class Service(metaclass=ServiceMeta):
             return self.update_many(items=items, changes=properties)
 
     def update_one(self, item: t.Any, changes: dict):
-        before_update.send(self.__class__,
-                           service=self,
-                           items=item,
-                           changes=changes)
+        self.before_update(items=item, changes=changes)
         item = self._update_one(item, changes)
-        after_update.send(self.__class__,
-                          service=self,
-                          item=item,
-                          changes=changes)
+        self.after_update(items=item, changes=changes)
         return item
 
     def update_many(self, items: t.List[t.Any], changes: t.List[dict]):
-        before_update.send(self.__class__,
-                           service=self,
-                           items=items,
-                           changes=changes)
+        self.before_update(items=items, changes=changes)
         items = self._update_many(items, changes)
-        after_update.send(self.__class__,
-                          service=self,
-                          items=items,
-                          changes=changes)
+        self.after_update(items=items, changes=changes)
         return items
 
     def _update_one(self, item: t.Any, changes: dict):
@@ -399,14 +356,14 @@ class Service(metaclass=ServiceMeta):
 
     def delete_one(self, id_: t.Any):
         self.read_or_raise(id_)
-        before_delete.send(self.__class__, service=self, ids=id_)
+        self.before_delete(ids=id_)
         self._delete_one(id_)
-        after_delete.send(self.__class__, service=self, ids=id_)
+        self.after_delete(ids=id_)
 
     def delete_many(self, ids: t.List[t.Any]):
-        before_delete.send(self.__class__, service=self, ids=ids)
+        self.before_delete(ids=ids)
         self._delete_many(ids)
-        after_delete.send(self.__class__, service=self, ids=ids)
+        self.after_delete(ids=ids)
 
     def _delete_one(self, id_: t.Any):
         raise NotImplemented

@@ -2,7 +2,9 @@ import marshmallow as ma
 import pytest
 
 from lesoon_restful.exceptions import FilterNotAllow
+from lesoon_restful.exceptions import InvalidParam
 from lesoon_restful.filters import CommonFilters
+from lesoon_restful.filters import ContainsFilter
 from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import EqualFilter
 from lesoon_restful.filters import FILTERS_BY_FIELD
@@ -11,6 +13,7 @@ from lesoon_restful.filters import filters_for_field_class
 from lesoon_restful.filters import GreaterThanEqualFilter
 from lesoon_restful.filters import GreaterThanFilter
 from lesoon_restful.filters import InFilter
+from lesoon_restful.filters import legitimize_sort
 from lesoon_restful.filters import legitimize_where
 from lesoon_restful.filters import LessThanEqualFilter
 from lesoon_restful.filters import LessThanFilter
@@ -50,11 +53,13 @@ class TestFilters:
         }
 
     def test_convert_filters(self):
+        # test equal
         condition = convert_filters({'$eq': 1}, {
             None: EqualFilter(name='eq', field=ma.fields.Int(), attribute='id'),
             'eq': EqualFilter(name='eq', field=ma.fields.Int(), attribute='id')
         })
 
+        assert isinstance(condition.filter, EqualFilter)
         assert condition.column == 'id'
         assert condition.value == 1
 
@@ -83,8 +88,22 @@ class TestFilters:
         where = {'a': 1}
         assert legitimize_where(where) == {'a': 1}
 
-        where = {'a__eq': 1}
+        where = {'a_eq': 1}
         assert legitimize_where(where) == {'a': {'$eq': 1}}
 
-        where = {'a__in': [1, 2, 3]}
+        where = {'a_in': [1, 2, 3]}
         assert legitimize_where(where) == {'a': {'$in': [1, 2, 3]}}
+
+    def test_legitimize_sort(self):
+        sort = 'a asc'
+        assert legitimize_sort(sort) == {'a': False}
+
+        sort = 'a asc,b desc'
+        assert legitimize_sort(sort) == {'a': False, 'b': True}
+
+        sort = {'a': False}
+        assert legitimize_sort(sort) == sort
+
+        sort = 'a'
+        with pytest.raises(InvalidParam):
+            legitimize_sort(sort)

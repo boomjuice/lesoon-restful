@@ -22,3 +22,6 @@ class TestCommon:
 
         param = '%7B%22a%22%3A%20%7B%22%24eq%22%3A%201%7D%7D'
         assert convert_dict(param) == {'a': {'$eq': 1}}
+
+        param = 'orderNo asc'
+        assert convert_dict(param, silent=True) == param

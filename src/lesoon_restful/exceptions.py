@@ -20,6 +20,12 @@ class RequestMustBeJSON(RestfulException):
         super().__init__(code, msg)
 
 
+class InvalidParam(RestfulException):
+
+    def __init__(self, code=None, msg='参数格式不合法'):
+        super().__init__(code, msg)
+
+
 class InvalidJSON(RestfulException):
 
     def __init__(self, code=None, msg='json格式不合法'):

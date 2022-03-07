@@ -1,3 +1,4 @@
+import re
 import typing as t
 from datetime import datetime
 
@@ -172,7 +173,12 @@ FILTER_NAMES = (
     (IStartsWithFilter, 'istartswith'),
     (EndsWithFilter, 'endswith'),
     (IEndsWithFilter, 'iendswith'),
-    (DateBetweenFilter, 'between'),
+    # TODO: JAVA体系定义
+    (ContainsFilter, 'like'),
+    (StringContainsFilter, 'like'),
+    (StringIContainsFilter, 'ilike'),
+    (StartsWithFilter, 'prefixLike'),
+    (EndsWithFilter, 'suffixLike'),
 )
 
 # 字段类型与过滤器集合映射
@@ -349,19 +355,41 @@ def legitimize_where(where: t.Dict[str, t.Any]):
     """
     将查询参数转换成标准过滤条件.
     Args:
-        where: {'a__eq':1}
+        where: {'a_eq':1}
 
     Returns:
         new_where: {'a':{'$eq': 1}}
     """
     new_where = {}
     for name, value in list(where.items()):
-        if '__' in name:
-            column, condition = name.split('__', 1)
+        if '_' in name:
+            column, condition = name.split('_', 1)
             new_where[column] = {f'${condition}': value}
         else:
             new_where[name] = value
     return new_where
+
+
+def legitimize_sort(sort: t.Union[str, dict]) -> t.Dict[str, bool]:
+    """
+       将排序条件标准化.
+       Args:
+           sort: "a asc,b desc"
+
+       Returns:
+           new_sort: {'a':False,'b': True}
+    """
+    if isinstance(sort, str):
+        if re.match(r'[,\w]+ ((asc)|(desc))', sort):
+            new_sort = {}
+            for s in sort.split(','):
+                # s = 'id asc' or 'id desc'
+                col, order = s.split(' ', 1)
+                new_sort[col] = False if order == 'asc' else True
+            return new_sort
+        else:
+            raise exceptions.InvalidParam(f'排序参数不合法:{sort}')
+    return sort
 
 
 def convert_filters(

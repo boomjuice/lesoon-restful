@@ -3,6 +3,7 @@ import typing as t
 from flask import current_app
 from flask_sqlalchemy import get_state
 from lesoon_common.dataclass.req import PageParam
+from lesoon_common.dataclass.resource import ImportData
 from lesoon_common.globals import request as current_request
 from lesoon_common.model.alchemy.base import Model
 from lesoon_common.model.alchemy.schema import ModelConverter
@@ -26,7 +27,7 @@ from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import filters_for_field
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.service import QueryService
-from lesoon_restful.utils.common import convert_dict
+from lesoon_restful.utils.common import convert_sort
 from lesoon_restful.utils.common import convert_where
 
 
@@ -64,7 +65,7 @@ class SQLAlchemyService(QueryService):
                                query: LesoonQuery,
                                request=current_request) -> PageParam:
         where_dict = convert_where(request.args.get('where'))
-        sort_dict = convert_dict(request.args.get('sort'))
+        sort_dict = convert_sort(request.args.get('sort'))
 
         where, sort = [], []
         models = parse_query_related_models(query=query)
@@ -274,20 +275,6 @@ class SQLAlchemyService(QueryService):
         self._query_filter(self.query, self.id_column.in_(ids)).delete()
         self.commit_or_flush(False)
 
-    def union_operate(self,
-                      insert_rows: t.List[dict],
-                      update_rows: t.List[dict],
-                      delete_rows: t.List[int],
-                      commit: bool = True):
-        """新增，更新，删除的联合操作."""
-        self.create_many(items=self.schema.load(insert_rows, many=True),
-                         commit=False)
-        self.update_many(items=self.schema.load(insert_rows, many=True),
-                         changes=update_rows,
-                         commit=False)
-        self.delete_many(ids=delete_rows, commit=False)
-        self.commit_or_flush(commit)
-
     def commit(self):
         self.commit_or_flush(commit=True)
 
@@ -301,10 +288,3 @@ class SQLAlchemyService(QueryService):
         except SQLAlchemyError:
             session.rollback()
             raise
-
-
-class SaasAlchemyService(SQLAlchemyService):
-
-    def _query(self) -> LesoonQuery:
-        query = super()._query()
-        return query.filter_by(company_id=current_request.user.company_id)

@@ -1,4 +1,4 @@
-GET http://localhost:5000/book?where={"rating":{"$lte":5}}&sort={"rating":true}
+GET http://localhost:5000/book?where={"rating":{"$lte":5}}&sort="rating asc"
 
 
 ###

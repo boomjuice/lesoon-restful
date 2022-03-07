@@ -2,6 +2,8 @@ from webargs import fields as web_fields
 
 from .api import Api
 from .dbengine.alchemy import SaasAlchemyService
+from .dbengine.alchemy import SaasSimpleAlchemyService
+from .dbengine.alchemy import SimpleAlchemyService
 from .dbengine.alchemy import SQLAlchemyService
 from .dbengine.mongoengine import MongoEngineService
 from .parser import ca_use_args

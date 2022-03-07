@@ -41,8 +41,8 @@ class GreaterThanEqualFilter(filters.GreaterThanEqualFilter):
 
 class InFilter(filters.InFilter):
 
-    def op(self, values):
-        return {f'{column}__in': values}
+    def op(self, column, value):
+        return {f'{column}__in': value}
 
 
 class ContainsFilter(filters.ContainsFilter):
