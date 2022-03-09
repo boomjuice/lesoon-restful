@@ -1,10 +1,10 @@
 import random
 from datetime import datetime
 
-from lesoon_common.extensions import db
+from lesoon_common.extensions import mg
 from lesoon_common.test import ft
 from lesoon_common.test import SqlaFatory
-from marshmallow_sqlalchemy.schema import SQLAlchemyAutoSchema
+from marshmallow_mongoengine.schema import ModelSchema
 
 
 class Author(db.Model):
@@ -20,7 +20,7 @@ class AuthorSchema(SQLAlchemyAutoSchema):
         model = Author
 
 
-class AuthorFactory(SqlaFatory):
+class AuthorFactory(ModelSchema):
     id = ft.Sequence(lambda n: n + 1)
     name = ft.Faker('word')
     age = ft.LazyFunction(lambda: random.randint(0, 100))
@@ -39,12 +39,10 @@ class Book(db.Model):
     create_time = db.Column(db.DateTime, default=datetime.now)
 
 
-class BookSchema(SQLAlchemyAutoSchema):
+class BookSchema(ModelSchema):
 
-    class Meta(SQLAlchemyAutoSchema.Meta):
+    class Meta(ModelSchema.Meta):
         model = Book
-        sqla_session = db.session
-        load_instance = True
 
 
 class BookFactory(SqlaFatory):
