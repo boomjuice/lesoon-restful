@@ -15,5 +15,7 @@ from .resource import Resource
 from .route import ItemRoute
 from .route import Route
 from .service import Service
+from .utils.openapi import cover_swag
+from .utils.openapi import Swagger
 
 __version__ = '0.0.2'

@@ -380,6 +380,8 @@ def legitimize_sort(sort: t.Union[str, dict]) -> t.Dict[str, bool]:
            new_sort: {'a':False,'b': True}
     """
     if isinstance(sort, str):
+        if ' ' not in sort:
+            return {sort: False}
         if re.match(r'[,\w]+ ((asc)|(desc))', sort):
             new_sort = {}
             for s in sort.split(','):

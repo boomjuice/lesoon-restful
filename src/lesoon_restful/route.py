@@ -1,9 +1,12 @@
 import typing as t
+from copy import deepcopy
 from functools import wraps
 from types import MethodType
 
 from lesoon_common.utils.str import camelcase
 from werkzeug.utils import cached_property
+
+from lesoon_restful.utils.openapi import resource_to_specs
 
 if t.TYPE_CHECKING:
     from lesoon_restful.resource import Resource
@@ -165,7 +168,9 @@ class Route:
         view.__module__ = resource.__module__
         view.__doc__ = resource.__doc__
         view.__resource__ = resource
-
+        # swagger
+        view.specs_dict = deepcopy(getattr(self.view_func, 'specs_dict', {}))
+        resource_to_specs(specs=view.specs_dict, resource=resource)
         return view
 
 

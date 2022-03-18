@@ -95,6 +95,9 @@ class TestFilters:
         assert legitimize_where(where) == {'a': {'$in': [1, 2, 3]}}
 
     def test_legitimize_sort(self):
+        sort = 'a'
+        assert legitimize_sort(sort) == {'a': False}
+
         sort = 'a asc'
         assert legitimize_sort(sort) == {'a': False}
 
@@ -103,7 +106,3 @@ class TestFilters:
 
         sort = {'a': False}
         assert legitimize_sort(sort) == sort
-
-        sort = 'a'
-        with pytest.raises(InvalidParam):
-            legitimize_sort(sort)

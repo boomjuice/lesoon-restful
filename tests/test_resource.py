@@ -42,30 +42,6 @@ class TestModelResource:
         FooResource.api = None
         api.add_resource(FooResource)
 
-    def test_resource_schema(self, test_client: LesoonTestClient):
-        response = test_client.get('/foo/schema')
-        assert response.status_code == 200
-        assert response.json == {
-            'title':
-                FooResource.meta.get('title'),
-            'description':
-                FooResource.meta.get('description'),
-            'name':
-                FooResource.meta.get('name'),
-            'resource':
-                FooResource.__name__,
-            'schema':
-                FooResource.schema.__class__.__name__,
-            'fields': {
-                name: field.__class__.__name__
-                for name, field in FooResource.schema.fields.items()
-            },
-            'links': [
-                f'{route.method} : {route.rule_factory(FooResource)}'
-                for route in FooResource.routes.values()
-            ]
-        }
-
     def test_resource_curd(self, app: LesoonFlask):
         test_client: LesoonTestClient = app.test_client()  # noqa
 

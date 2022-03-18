@@ -2,16 +2,19 @@ import inspect
 import json
 import typing as t
 
-import marshmallow as ma
 from lesoon_common.globals import request
 from lesoon_common.response import success_response
 from lesoon_common.schema import ListOrNotSchema
+from marshmallow import INCLUDE
+from marshmallow import Schema
 from webargs import fields
 
 from lesoon_restful.parser import use_args
 from lesoon_restful.route import ItemRoute
 from lesoon_restful.route import Route
 from lesoon_restful.utils.common import AttributeDict
+from lesoon_restful.utils.openapi import cover_swag
+from lesoon_restful.utils.openapi import DEFUALT_SWAGGER_RESPONSES
 
 if t.TYPE_CHECKING:
     from lesoon_restful.api import Api
@@ -108,34 +111,19 @@ class ModelResourceMeta(ResourceMeta):
 
 class ModelResource(Resource, metaclass=ModelResourceMeta):
     service: 'Service' = None
-    schema: ma.Schema = None
+    schema: Schema = None
 
-    @Route.GET('/schema', rel='schema', attribute='schema')
-    def model_schema(self):
-        schema = {
-            'title':
-                self.meta.get('title'),
-            'description':
-                self.meta.get('description'),
-            'name':
-                self.meta.get('name'),
-            'resource':
-                self.__class__.__name__,
-            'schema':
-                self.schema.__class__.__name__,
-            'fields': {
-                name: field.__class__.__name__
-                for name, field in self.schema.fields.items()
-            },
-            'links': [
-                f'{route.method} : {route.rule_factory(self)}'
-                for route in self.routes.values()
-            ]
-        }
-
-        return json.dumps(schema)
+    class Meta:
+        id_attribute: str = 'id'
+        id_converter: str = 'int'
+        schema: t.Type[Schema] = None
+        model: t.Any = None
+        filters: t.Union[bool, dict] = True
+        sortable: bool = True
+        service: t.Type['Service'] = None
 
     @Route.GET('', rel='instances')
+    @cover_swag(description='获取分页对象', responses=DEFUALT_SWAGGER_RESPONSES)
     def instances(self):
         pagination = self.service.paginated_instances()
         results = self.schema.dump(pagination.items, many=True)
@@ -146,30 +134,41 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
         return success_response(self.schema.dump(item))
 
     @Route.POST('', rel='create_entrance')
-    @use_args(ListOrNotSchema(unknown=ma.INCLUDE), location='json')
+    @cover_swag(description='单条新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @use_args(Schema(unknown=INCLUDE), location='json')
     def create(self, properties: t.Union[dict, t.List[dict]]):
         item = self.service.create(properties)
         return success_response(result=self.schema.dump(item), msg='新建成功')
 
-    @ItemRoute.POST('', rel='create_instance')
-    @use_args(ma.Schema(unknown=ma.INCLUDE), location='json')
-    def create_instance(self, item: object):
-        item = self.service._create_one(item=item)
+    @Route.POST('/batch', rel='create_many')
+    @cover_swag(description='批量新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @use_args(Schema(unknown=INCLUDE, many=True), location='json')
+    def create_many(self, properties: t.List[dict]):
+        item = self.service.create(properties)
         return success_response(result=self.schema.dump(item), msg='新建成功')
 
     @Route.PUT('', rel='update_entrance')
-    @use_args(ListOrNotSchema(unknown=ma.INCLUDE), location='json')
+    @cover_swag(description='单条新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @use_args(Schema(unknown=INCLUDE), location='json')
     def update(self, properties: t.Union[dict, t.List[dict]]):
         item = self.service.update(properties)
         return success_response(self.schema.dump(item), msg='更新成功')
 
+    @Route.PUT('/batch', rel='update_many')
+    @cover_swag(description='批量新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @use_args(Schema(unknown=INCLUDE, many=True), location='json')
+    def update_many(self, properties: t.Union[dict, t.List[dict]]):
+        item = self.service.update(properties)
+        return success_response(self.schema.dump(item), msg='更新成功')
+
     @ItemRoute.PUT('', rel='update_instance')
-    @use_args(ma.Schema(unknown=ma.INCLUDE), location='json')
+    @use_args(Schema(unknown=INCLUDE), location='json')
     def update_instance(self, item: object, properties: dict):
         item = self.service._update_one(item, properties)
         return success_response(result=self.schema.dump(item), msg='更新成功')
 
     @Route.DELETE('', rel='delete_entrance')
+    @cover_swag(description='批量删除', responses=DEFUALT_SWAGGER_RESPONSES)
     @use_args({'ids': fields.DelimitedList(fields.Raw())},
               as_kwargs=True,
               location='query')
@@ -185,12 +184,3 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
         id_ = getattr(item, self.service.id_attribute)
         self.service._delete_one(id_)
         return success_response(msg='删除成功')
-
-    class Meta:
-        id_attribute: str = 'id'
-        id_converter: str = 'int'
-        schema: t.Type[ma.Schema] = None
-        model: t.Any = None
-        filters: t.Union[bool, dict] = True
-        sortable: bool = True
-        service: t.Type['Service'] = None

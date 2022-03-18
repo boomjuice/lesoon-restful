@@ -71,6 +71,15 @@ class Api:
             rule = route.rule_factory(resource)
             self._register_view(app, rule, route.skip_api_decorators, view_func,
                                 endpoint, methods)
+        self._init_swag(app)
+
+    def _init_swag(self, app: Flask):
+        if hasattr(app, 'swag'):
+            tags = [{
+                'name': rs.__name__,
+                'description': rs.meta.description
+            } for rs in self.resources.values()]
+            app.swag.template['tags'] = tags  # type: ignore
 
     def _register_view(self, app, rule: str, skip_decorators: bool,
                        view_func: t.Callable, endpoint: str,
