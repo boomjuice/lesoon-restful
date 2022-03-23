@@ -1,7 +1,7 @@
 import pytest
 
-from lesoon_restful.utils.common import AttributeDict
-from lesoon_restful.utils.common import convert_dict
+from lesoon_restful.utils.base import AttributeDict
+from lesoon_restful.utils.base import convert_dict
 
 
 class TestCommon:

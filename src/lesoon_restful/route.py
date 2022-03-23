@@ -6,7 +6,7 @@ from types import MethodType
 from lesoon_common.utils.str import camelcase
 from werkzeug.utils import cached_property
 
-from lesoon_restful.utils.openapi import resource_to_specs
+from lesoon_restful.openapi.utils import resource_to_specs
 
 if t.TYPE_CHECKING:
     from lesoon_restful.resource import Resource

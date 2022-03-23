@@ -27,8 +27,8 @@ from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import filters_for_field
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.service import QueryService
-from lesoon_restful.utils.common import convert_sort
-from lesoon_restful.utils.common import convert_where
+from lesoon_restful.utils.base import convert_sort
+from lesoon_restful.utils.base import convert_where
 
 
 class SQLAlchemyService(QueryService):

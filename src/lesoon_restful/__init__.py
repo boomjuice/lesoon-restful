@@ -6,6 +6,8 @@ from .dbengine.alchemy import SaasSimpleAlchemyService
 from .dbengine.alchemy import SimpleAlchemyService
 from .dbengine.alchemy import SQLAlchemyService
 from .dbengine.mongoengine import MongoEngineService
+from .openapi import cover_swag
+from .openapi import Swagger
 from .parser import ca_use_args
 from .parser import ca_use_kwargs
 from .parser import use_args
@@ -15,7 +17,5 @@ from .resource import Resource
 from .route import ItemRoute
 from .route import Route
 from .service import Service
-from .utils.openapi import cover_swag
-from .utils.openapi import Swagger
 
 __version__ = '0.0.2'

@@ -1,20 +1,17 @@
 import inspect
-import json
 import typing as t
 
-from lesoon_common.globals import request
 from lesoon_common.response import success_response
-from lesoon_common.schema import ListOrNotSchema
 from marshmallow import INCLUDE
 from marshmallow import Schema
 from webargs import fields
 
+from lesoon_restful.openapi import cover_swag
+from lesoon_restful.openapi import DEFAULT_SWAGGER_RESPONSES
 from lesoon_restful.parser import use_args
 from lesoon_restful.route import ItemRoute
 from lesoon_restful.route import Route
-from lesoon_restful.utils.common import AttributeDict
-from lesoon_restful.utils.openapi import cover_swag
-from lesoon_restful.utils.openapi import DEFUALT_SWAGGER_RESPONSES
+from lesoon_restful.utils.base import AttributeDict
 
 if t.TYPE_CHECKING:
     from lesoon_restful.api import Api
@@ -123,7 +120,7 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
         service: t.Type['Service'] = None
 
     @Route.GET('', rel='instances')
-    @cover_swag(description='获取分页对象', responses=DEFUALT_SWAGGER_RESPONSES)
+    @cover_swag(description='获取分页对象')
     def instances(self):
         pagination = self.service.paginated_instances()
         results = self.schema.dump(pagination.items, many=True)
@@ -134,28 +131,28 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
         return success_response(self.schema.dump(item))
 
     @Route.POST('', rel='create_entrance')
-    @cover_swag(description='单条新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @cover_swag(description='单条新增')
     @use_args(Schema(unknown=INCLUDE), location='json')
     def create(self, properties: t.Union[dict, t.List[dict]]):
         item = self.service.create(properties)
         return success_response(result=self.schema.dump(item), msg='新建成功')
 
     @Route.POST('/batch', rel='create_many')
-    @cover_swag(description='批量新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @cover_swag(description='批量新增')
     @use_args(Schema(unknown=INCLUDE, many=True), location='json')
     def create_many(self, properties: t.List[dict]):
         item = self.service.create(properties)
         return success_response(result=self.schema.dump(item), msg='新建成功')
 
     @Route.PUT('', rel='update_entrance')
-    @cover_swag(description='单条新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @cover_swag(description='单条新增')
     @use_args(Schema(unknown=INCLUDE), location='json')
     def update(self, properties: t.Union[dict, t.List[dict]]):
         item = self.service.update(properties)
         return success_response(self.schema.dump(item), msg='更新成功')
 
     @Route.PUT('/batch', rel='update_many')
-    @cover_swag(description='批量新增', responses=DEFUALT_SWAGGER_RESPONSES)
+    @cover_swag(description='批量新增')
     @use_args(Schema(unknown=INCLUDE, many=True), location='json')
     def update_many(self, properties: t.Union[dict, t.List[dict]]):
         item = self.service.update(properties)
@@ -168,7 +165,7 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
         return success_response(result=self.schema.dump(item), msg='更新成功')
 
     @Route.DELETE('', rel='delete_entrance')
-    @cover_swag(description='批量删除', responses=DEFUALT_SWAGGER_RESPONSES)
+    @cover_swag(description='批量删除')
     @use_args({'ids': fields.DelimitedList(fields.Raw())},
               as_kwargs=True,
               location='query')

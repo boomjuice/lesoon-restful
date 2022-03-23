@@ -2,7 +2,6 @@ import functools
 import typing as t
 
 import marshmallow as ma
-from lesoon_common.globals import current_app
 from lesoon_common.schema import CamelSchema
 from lesoon_common.utils.str import camelcase
 from webargs.core import _UNKNOWN_DEFAULT_PARAM
@@ -11,7 +10,7 @@ from webargs.core import Request
 from webargs.core import ValidateArg
 from webargs.flaskparser import FlaskParser
 
-from lesoon_restful.utils.openapi import schema2parameters_to_specs
+from lesoon_restful.openapi.utils import merge_specs
 
 
 class WebArgParser(FlaskParser):
@@ -67,23 +66,23 @@ class WebArgParser(FlaskParser):
         """
         location = location or self.location
         request_obj = req
-        # Optimization: If argmap is passed as a dictionary, we only need
-        # to generate a Schema once
-        if isinstance(argmap, t.Mapping):
-            argmap = self.schema_class.from_dict(argmap)()
 
         def decorator(func):
             req_ = request_obj
             argmap_ = argmap
+            # Optimization: If argmap is passed as a dictionary, we only need
+            # to generate a Schema once
+            if isinstance(argmap_, t.Mapping):
+                name = f'{camelcase(func.__name__, upper=True)}Param'
+                argmap_ = self.schema_class.from_dict(argmap_, name=name)()
+
             # --- swagger ---
             func.specs_dict = getattr(func, 'specs_dict', {})
             if not isinstance(argmap_, t.Callable):
                 # argmap为可调用函数时 无法注入swagger
-                schema2parameters_to_specs(
-                    specs=func.specs_dict,
-                    schema=argmap_,
-                    location=self.__openapi_location_map__.get(
-                        location, location))
+                argmap_.swag_in = self.__openapi_location_map__.get(
+                    location, location)
+                merge_specs(func.specs_dict, {'parameters': [argmap_]})
 
             # --- swagger ---
             @functools.wraps(func)

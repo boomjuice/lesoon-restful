@@ -17,9 +17,9 @@ from lesoon_restful.filters import FILTER_NAMES
 from lesoon_restful.filters import FILTERS_BY_FIELD
 from lesoon_restful.filters import filters_for_fields
 from lesoon_restful.resource import ModelResource
-from lesoon_restful.utils.common import AttributeDict
-from lesoon_restful.utils.common import convert_sort
-from lesoon_restful.utils.common import convert_where
+from lesoon_restful.utils.base import AttributeDict
+from lesoon_restful.utils.base import convert_sort
+from lesoon_restful.utils.base import convert_where
 
 if t.TYPE_CHECKING:
     from lesoon_restful.filters import FN_TYPE
