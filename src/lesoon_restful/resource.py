@@ -17,6 +17,9 @@ if t.TYPE_CHECKING:
     from lesoon_restful.api import Api
     from lesoon_restful.service import Service
 
+Include: Schema = Schema(unknown=INCLUDE)
+IncludeMany: Schema = Schema(unknown=INCLUDE, many=True)
+
 
 class ResourceMeta(type):
 
@@ -132,34 +135,34 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
 
     @Route.POST('', rel='create_entrance')
     @cover_swag(description='单条新增')
-    @use_args(Schema(unknown=INCLUDE), location='json')
-    def create(self, properties: t.Union[dict, t.List[dict]]):
+    @use_args(Include, location='json')
+    def create(self, properties: dict):
         item = self.service.create(properties)
         return success_response(result=self.schema.dump(item), msg='新建成功')
 
     @Route.POST('/batch', rel='create_many')
     @cover_swag(description='批量新增')
-    @use_args(Schema(unknown=INCLUDE, many=True), location='json')
+    @use_args(IncludeMany, location='json')
     def create_many(self, properties: t.List[dict]):
         item = self.service.create(properties)
         return success_response(result=self.schema.dump(item), msg='新建成功')
 
     @Route.PUT('', rel='update_entrance')
-    @cover_swag(description='单条新增')
-    @use_args(Schema(unknown=INCLUDE), location='json')
-    def update(self, properties: t.Union[dict, t.List[dict]]):
+    @cover_swag(description='单条更新')
+    @use_args(Include, location='json')
+    def update(self, properties: dict):
         item = self.service.update(properties)
         return success_response(self.schema.dump(item), msg='更新成功')
 
     @Route.PUT('/batch', rel='update_many')
-    @cover_swag(description='批量新增')
-    @use_args(Schema(unknown=INCLUDE, many=True), location='json')
-    def update_many(self, properties: t.Union[dict, t.List[dict]]):
+    @cover_swag(description='批量更新')
+    @use_args(IncludeMany, location='json')
+    def update_many(self, properties: t.List[dict]):
         item = self.service.update(properties)
         return success_response(self.schema.dump(item), msg='更新成功')
 
     @ItemRoute.PUT('', rel='update_instance')
-    @use_args(Schema(unknown=INCLUDE), location='json')
+    @use_args(Include, location='json')
     def update_instance(self, item: object, properties: dict):
         item = self.service._update_one(item, properties)
         return success_response(result=self.schema.dump(item), msg='更新成功')

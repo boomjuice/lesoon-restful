@@ -63,7 +63,7 @@ def convert_schemas(d, definitions=None):
             new_v = []
             for s in v:
                 if is_schema_type(s):
-                    new_v.append(_schema2parameters(s, s.swag_in)[0])
+                    new_v.extend(_schema2parameters(s, s.swag_in))
                 else:
                     new_v.append(s)
             v = new_v
