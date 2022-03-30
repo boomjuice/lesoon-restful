@@ -1,7 +1,8 @@
 import inspect
 import typing as t
 
-from lesoon_common.response import success_response
+from lesoon_common.response import ResponseBase
+from lesoon_common.response import Response
 from marshmallow import INCLUDE
 from marshmallow import Schema
 from webargs import fields
@@ -113,6 +114,8 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
     service: 'Service' = None
     schema: Schema = None
 
+    response_cls: t.Type[ResponseBase] = Response
+
     class Meta:
         id_attribute: str = 'id'
         id_converter: str = 'int'
@@ -127,45 +130,45 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
     def instances(self):
         pagination = self.service.paginated_instances()
         results = self.schema.dump(pagination.items, many=True)
-        return success_response(result=results, total=pagination.total)
+        return self.response_cls.success(result=results, total=pagination.total)
 
     @ItemRoute.GET('', rel='instance')
     def read(self, item: object):
-        return success_response(self.schema.dump(item))
+        return self.response_cls.success(self.schema.dump(item))
 
     @Route.POST('', rel='create_entrance')
     @cover_swag(description='单条新增')
     @use_args(Include, location='json')
     def create(self, properties: dict):
         item = self.service.create(properties)
-        return success_response(result=self.schema.dump(item), msg='新建成功')
+        return self.response_cls.success(result=self.schema.dump(item), msg='新建成功')
 
     @Route.POST('/batch', rel='create_many')
     @cover_swag(description='批量新增')
     @use_args(IncludeMany, location='json')
     def create_many(self, properties: t.List[dict]):
         item = self.service.create(properties)
-        return success_response(result=self.schema.dump(item), msg='新建成功')
+        return self.response_cls.success(result=self.schema.dump(item), msg='新建成功')
 
     @Route.PUT('', rel='update_entrance')
     @cover_swag(description='单条更新')
     @use_args(Include, location='json')
     def update(self, properties: dict):
         item = self.service.update(properties)
-        return success_response(self.schema.dump(item), msg='更新成功')
+        return self.response_cls.success(self.schema.dump(item), msg='更新成功')
 
     @Route.PUT('/batch', rel='update_many')
     @cover_swag(description='批量更新')
     @use_args(IncludeMany, location='json')
     def update_many(self, properties: t.List[dict]):
         item = self.service.update(properties)
-        return success_response(self.schema.dump(item), msg='更新成功')
+        return self.response_cls.success(self.schema.dump(item), msg='更新成功')
 
     @ItemRoute.PUT('', rel='update_instance')
     @use_args(Include, location='json')
     def update_instance(self, item: object, properties: dict):
         item = self.service._update_one(item, properties)
-        return success_response(result=self.schema.dump(item), msg='更新成功')
+        return self.response_cls.success(result=self.schema.dump(item), msg='更新成功')
 
     @Route.DELETE('', rel='delete_entrance')
     @cover_swag(description='批量删除')
@@ -177,10 +180,10 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
               location='list_json')
     def delete(self, ids: t.List[str]):
         self.service.delete(ids)
-        return success_response(msg='删除成功')
+        return self.response_cls.success(msg='删除成功')
 
     @ItemRoute.DELETE('', rel='delete_instance')
     def delete_instance(self, item):
         id_ = getattr(item, self.service.id_attribute)
         self.service._delete_one(id_)
-        return success_response(msg='删除成功')
+        return self.response_cls.success(msg='删除成功')

@@ -228,7 +228,7 @@ class SQLAlchemyService(QueryService):
         return item
 
     def _create_many(self, items: t.List[Model]) -> t.List[Model]:
-        self.session.add_all(items)
+        self.session.bulk_save_objects(items)
         self.commit_or_flush(False)
         return items
 
