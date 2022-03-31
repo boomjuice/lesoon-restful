@@ -11,7 +11,7 @@ from .resource import ModelResource
 from .resource import Resource
 from lesoon_restful.route import Route
 from lesoon_restful.service import Service
-from lesoon_restful.utils.req import unpack
+from lesoon_restful.utils.base import unpack
 
 
 class Api:

@@ -16,10 +16,10 @@ from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import FILTER_NAMES
 from lesoon_restful.filters import FILTERS_BY_FIELD
 from lesoon_restful.filters import filters_for_fields
+from lesoon_restful.filters import legitimize_sort
+from lesoon_restful.filters import legitimize_where
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.utils.base import AttributeDict
-from lesoon_restful.utils.base import convert_sort
-from lesoon_restful.utils.base import convert_where
 
 if t.TYPE_CHECKING:
     from lesoon_restful.filters import FN_TYPE
@@ -165,8 +165,8 @@ class Service(metaclass=ServiceMeta):
                   sort -排序条件
 
         """
-        where_dict = convert_where(request.args.get('where'))
-        sort_dict = convert_sort(request.args.get('sort'))
+        where_dict = legitimize_where(request.where)
+        sort_dict = legitimize_sort(request.sort)
 
         where = tuple(self._convert_filters(where_dict))
         sort = tuple(self._convert_sort(sort_dict))

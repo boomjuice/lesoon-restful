@@ -25,10 +25,10 @@ from lesoon_restful.dbengine.alchemy.utils import parse_query_related_models
 from lesoon_restful.filters import BaseFilter
 from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import filters_for_field
+from lesoon_restful.filters import legitimize_sort
+from lesoon_restful.filters import legitimize_where
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.service import QueryService
-from lesoon_restful.utils.base import convert_sort
-from lesoon_restful.utils.base import convert_where
 
 
 class SQLAlchemyService(QueryService):
@@ -64,8 +64,8 @@ class SQLAlchemyService(QueryService):
     def parse_request_by_query(self,
                                query: LesoonQuery,
                                request=current_request) -> PageParam:
-        where_dict = convert_where(request.args.get('where'))
-        sort_dict = convert_sort(request.args.get('sort'))
+        where_dict = legitimize_where(request.where)
+        sort_dict = legitimize_sort(request.sort)
 
         where, sort = [], []
         models = parse_query_related_models(query=query)

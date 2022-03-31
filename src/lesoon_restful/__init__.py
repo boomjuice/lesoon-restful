@@ -12,10 +12,10 @@ from .parser import ca_use_args
 from .parser import ca_use_kwargs
 from .parser import use_args
 from .parser import use_kwargs
-from .resource import ModelResource
-from .resource import Resource
 from .resource import Include
 from .resource import IncludeMany
+from .resource import ModelResource
+from .resource import Resource
 from .route import ItemRoute
 from .route import Route
 from .service import Service

@@ -1,8 +1,8 @@
 import inspect
 import typing as t
 
-from lesoon_common.response import ResponseBase
 from lesoon_common.response import Response
+from lesoon_common.response import ResponseBase
 from marshmallow import INCLUDE
 from marshmallow import Schema
 from webargs import fields
@@ -81,6 +81,7 @@ class Resource(metaclass=ResourceMeta):
     meta: AttributeDict = None
     routes: t.Dict[str, Route] = None
     route_prefix: str = None
+    response_cls: t.Type[ResponseBase] = Response
 
     class Meta:
         name: str = None
@@ -114,8 +115,6 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
     service: 'Service' = None
     schema: Schema = None
 
-    response_cls: t.Type[ResponseBase] = Response
-
     class Meta:
         id_attribute: str = 'id'
         id_converter: str = 'int'
@@ -141,14 +140,16 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
     @use_args(Include, location='json')
     def create(self, properties: dict):
         item = self.service.create(properties)
-        return self.response_cls.success(result=self.schema.dump(item), msg='新建成功')
+        return self.response_cls.success(result=self.schema.dump(item),
+                                         msg='新建成功')
 
     @Route.POST('/batch', rel='create_many')
     @cover_swag(description='批量新增')
     @use_args(IncludeMany, location='json')
     def create_many(self, properties: t.List[dict]):
         item = self.service.create(properties)
-        return self.response_cls.success(result=self.schema.dump(item), msg='新建成功')
+        return self.response_cls.success(result=self.schema.dump(item),
+                                         msg='新建成功')
 
     @Route.PUT('', rel='update_entrance')
     @cover_swag(description='单条更新')
@@ -168,7 +169,8 @@ class ModelResource(Resource, metaclass=ModelResourceMeta):
     @use_args(Include, location='json')
     def update_instance(self, item: object, properties: dict):
         item = self.service._update_one(item, properties)
-        return self.response_cls.success(result=self.schema.dump(item), msg='更新成功')
+        return self.response_cls.success(result=self.schema.dump(item),
+                                         msg='更新成功')
 
     @Route.DELETE('', rel='delete_entrance')
     @cover_swag(description='批量删除')
