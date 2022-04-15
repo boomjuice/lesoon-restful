@@ -45,6 +45,12 @@ class InFilter(filters.InFilter):
         return {f'{column}__in': value}
 
 
+class NotInFilter(filters.NotInFilter):
+
+    def op(self, column, value):
+        return {f'{column}__nin': value}
+
+
 class ContainsFilter(filters.ContainsFilter):
 
     def op(self, column, value):
@@ -87,35 +93,35 @@ class IEndsWithFilter(filters.IEndsWithFilter):
         return {f'{column}__iendswith': value}
 
 
-CommonFilters = (EqualFilter, NotEqualFilter, InFilter)
+CommonFilters = (EqualFilter, NotEqualFilter, InFilter, NotInFilter)
 NumberFilters = (LessThanFilter, LessThanEqualFilter, GreaterThanFilter,
                  GreaterThanEqualFilter)
 StringFilters = (StringContainsFilter, StringIContainsFilter, StartsWithFilter,
                  IStartsWithFilter, EndsWithFilter, IEndsWithFilter)
 
-FILTER_NAMES = (
-    (EqualFilter, None),
-    (EqualFilter, 'eq'),
-    (NotEqualFilter, 'ne'),
-    (LessThanFilter, 'lt'),
-    (LessThanEqualFilter, 'lte'),
-    (GreaterThanFilter, 'gt'),
-    (GreaterThanEqualFilter, 'gte'),
-    (InFilter, 'in'),
-    (ContainsFilter, 'contains'),
-    (StringContainsFilter, 'contains'),
-    (StringIContainsFilter, 'icontains'),
-    (StartsWithFilter, 'startswith'),
-    (IStartsWithFilter, 'istartswith'),
-    (EndsWithFilter, 'endswith'),
-    (IEndsWithFilter, 'iendswith'),
-)
+FILTER_NAMES = ((EqualFilter, None), (EqualFilter, filters.Equal),
+                (NotEqualFilter,
+                 filters.NotEqual), (LessThanFilter,
+                                     filters.LessThan), (LessThanEqualFilter,
+                                                         filters.LessThanEqual),
+                (GreaterThanFilter,
+                 filters.GreaterThanEqual), (GreaterThanEqualFilter,
+                                             filters.GreaterThanEqual),
+                (InFilter, filters.In), (NotInFilter, filters.NotIn),
+                (ContainsFilter, filters.Contains), (StringContainsFilter,
+                                                     filters.Contains),
+                (StringIContainsFilter,
+                 filters.IContains), (StartsWithFilter, filters.StartsWith),
+                (IStartsWithFilter,
+                 filters.IStartsWith), (EndsWithFilter,
+                                        filters.EndsWith), (IEndsWithFilter,
+                                                            filters.IEndsWith))
 
 FILTERS_BY_FIELD = (
     (ma_fields.Boolean, CommonFilters),
-    (ma_fields.Number, CommonFilters + NumberFilters),
-    (ma_fields.Float, CommonFilters + NumberFilters),
-    (ma_fields.Decimal, CommonFilters + NumberFilters),
-    (ma_fields.String, CommonFilters + StringFilters),
-    (ma_fields.List, ContainsFilter),
+    (ma_fields.Number, CommonFilters + NumberFilters),  # noqa
+    (ma_fields.Float, CommonFilters + NumberFilters),  # noqa
+    (ma_fields.Decimal, CommonFilters + NumberFilters),  # noqa
+    (ma_fields.String, CommonFilters + StringFilters),  # noqa
+    (ma_fields.List, (ContainsFilter,)),
 )

@@ -1,10 +1,26 @@
-import re
 import typing as t
-from datetime import datetime
 
 import marshmallow as ma
 
 from lesoon_restful import exceptions
+
+# ShortName
+Equal = 'eq'
+NotEqual = 'ne'
+LessThan = 'lt'
+LessThanEqual = 'lte'
+GreaterThan = 'gt'
+GreaterThanEqual = 'gte'
+In = 'in'
+NotIn = 'nin'
+Contains = 'contains'
+StringContains = 'contains'
+IContains = 'icontains'
+StartsWith = 'startswith'
+IStartsWith = 'istartswith'
+EndsWith = 'endswith'
+IEndsWith = 'iendswith'
+Between = 'between'
 
 
 class BaseFilter:
@@ -17,6 +33,8 @@ class BaseFilter:
         column: 操作对象
 
     """
+    DELIMITER = ','
+    DELIMITED_FILTER_NAMES = (In, NotIn)
 
     def __init__(self,
                  name: str,
@@ -33,9 +51,15 @@ class BaseFilter:
         else:
             self.column = attribute
 
+    def format_value(self, value: t.Any):
+        if isinstance(value, str) and self.name in self.DELIMITED_FILTER_NAMES:
+            return value.split(self.DELIMITER)
+        else:
+            return value
+
     def convert(self, value: t.Union[dict, str]):
-        if self.name is not None and isinstance(value, dict):
-            value = value[f'${self.name}']
+        if self.name is not None:
+            value = self.format_value(value)
             # 存在匹配则序列化值
             if isinstance(value, list):
                 value = [
@@ -93,6 +117,12 @@ class InFilter(BaseFilter):
         return column in value
 
 
+class NotInFilter(BaseFilter):
+
+    def op(self, column, value):
+        return column not in value
+
+
 class ContainsFilter(BaseFilter):
 
     def op(self, column, value):
@@ -143,7 +173,7 @@ class DateBetweenFilter(BaseFilter):
 
 
 # 通用过滤器集合
-CommonFilters = (EqualFilter, NotEqualFilter, InFilter)
+CommonFilters = (EqualFilter, NotEqualFilter, InFilter, NotInFilter)
 # 数字过滤器集合
 NumberFilters = (LessThanFilter, LessThanEqualFilter, GreaterThanFilter,
                  GreaterThanEqualFilter)
@@ -157,29 +187,18 @@ FN_TYPE = t.Tuple[t.Type[BaseFilter], str]
 FBF_TYPE = t.Any
 
 # 过滤简称映射
-FILTER_NAMES = (
-    (EqualFilter, None),
-    (EqualFilter, 'eq'),
-    (NotEqualFilter, 'ne'),
-    (LessThanFilter, 'lt'),
-    (LessThanEqualFilter, 'lte'),
-    (GreaterThanFilter, 'gt'),
-    (GreaterThanEqualFilter, 'gte'),
-    (InFilter, 'in'),
-    (ContainsFilter, 'contains'),
-    (StringContainsFilter, 'contains'),
-    (StringIContainsFilter, 'icontains'),
-    (StartsWithFilter, 'startswith'),
-    (IStartsWithFilter, 'istartswith'),
-    (EndsWithFilter, 'endswith'),
-    (IEndsWithFilter, 'iendswith'),
-    # TODO: JAVA体系定义
-    (ContainsFilter, 'like'),
-    (StringContainsFilter, 'like'),
-    (StringIContainsFilter, 'ilike'),
-    (StartsWithFilter, 'prefixLike'),
-    (EndsWithFilter, 'suffixLike'),
-)
+FILTER_NAMES = ((EqualFilter, None), (EqualFilter, Equal), (NotEqualFilter,
+                                                            NotEqual),
+                (LessThanFilter, LessThan), (LessThanEqualFilter,
+                                             LessThanEqual), (GreaterThanFilter,
+                                                              GreaterThan),
+                (GreaterThanEqualFilter,
+                 GreaterThanEqual), (InFilter, In), (NotInFilter, NotIn),
+                (ContainsFilter, Contains), (StringContainsFilter, Contains),
+                (StringIContainsFilter, IContains), (StartsWithFilter,
+                                                     StartsWith),
+                (IStartsWithFilter, IStartsWith), (EndsWithFilter, EndsWith),
+                (IEndsWithFilter, IEndsWith), (DateBetweenFilter, Between))
 
 # 字段类型与过滤器集合映射
 FILTERS_BY_FIELD = (
@@ -351,52 +370,9 @@ def filters_for_fields(fields: dict,
     return filters
 
 
-def legitimize_where(where: t.Dict[str, t.Any]):
-    """
-    将查询参数转换成标准过滤条件.
-    Args:
-        where: {'a_eq':1}
-
-    Returns:
-        new_where: {'a':{'$eq': 1}}
-    """
-    new_where = {}
-    for name, value in list(where.items()):
-        if '_' in name:
-            column, condition = name.split('_', 1)
-            new_where[column] = {f'${condition}': value}
-        else:
-            new_where[name] = value
-    return new_where
-
-
-def legitimize_sort(sort: t.Union[str, dict]) -> t.Dict[str, bool]:
-    """
-       将排序条件标准化.
-       Args:
-           sort: "a asc,b desc"
-
-       Returns:
-           new_sort: {'a':False,'b': True}
-    """
-    if isinstance(sort, str):
-        if ' ' not in sort:
-            return {sort: False}
-        if re.match(r'[,\w]+ ((asc)|(desc))', sort):
-            new_sort = {}
-            for s in sort.split(','):
-                # s = 'id asc' or 'id desc'
-                col, order = s.split(' ', 1)
-                new_sort[col] = False if order == 'asc' else True
-            return new_sort
-        else:
-            raise exceptions.InvalidParam(f'排序参数不合法:{sort}')
-    return sort
-
-
 def convert_filters(
         value: t.Any, field_filters: t.Dict[t.Optional[str],
-                                            BaseFilter]) -> Condition:
+                                            BaseFilter]) -> t.List[Condition]:
     """
     匹配过滤器，调用过滤器转变值函数.
 
@@ -405,26 +381,24 @@ def convert_filters(
         field_filters:  字段过滤器 {'eq':EqualFilter,...}
 
     """
+    fs = []
     _f = field_filters[None]
     if isinstance(value, dict):
-        if len(value) != 1:
-            raise exceptions.FilterInvalid(
-                msg=
-                f'字段 <{_f.field.__class__.__name__}:{_f.attribute}> 过滤值不合法:{value}'
-            )
-        filter_name = next(iter(value))
+        for filter_name, filter_value in value.items():
+            # search for filters in the format {"$filter": condition}
+            # like {"$eq": 111}
+            if filter_name.startswith('$'):
+                filter_name = filter_name[1:]
 
-        # search for filters in the format {"$filter": condition}
-        # like {"$eq": 111}
-        if len(filter_name) > 1 and filter_name.startswith('$'):
-            filter_name = filter_name[1:]
-
-            for filter_ in field_filters.values():
-                if filter_name == filter_.name:
-                    return filter_.convert(value)
-            else:
-                raise exceptions.FilterNotAllow(
-                    msg=
-                    f'字段 <{_f.field.__class__.__name__}:{_f.attribute}> 不支持{filter_name}过滤'
-                )
-    return _f.convert(value)
+                for name, filter_ in field_filters.items():
+                    if filter_name == name:
+                        fs.append(filter_.convert(filter_value))
+                        break
+                else:
+                    raise exceptions.FilterNotAllow(
+                        msg=
+                        f'字段 <{_f.field.__class__.__name__}:{_f.attribute}> 不支持{filter_name}过滤'
+                    )
+    else:
+        fs = [_f.convert(value)]
+    return fs

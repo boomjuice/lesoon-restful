@@ -16,10 +16,10 @@ from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import FILTER_NAMES
 from lesoon_restful.filters import FILTERS_BY_FIELD
 from lesoon_restful.filters import filters_for_fields
-from lesoon_restful.filters import legitimize_sort
-from lesoon_restful.filters import legitimize_where
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.utils.base import AttributeDict
+from lesoon_restful.utils.filters import legitimize_sort
+from lesoon_restful.utils.filters import legitimize_where
 
 if t.TYPE_CHECKING:
     from lesoon_restful.filters import FN_TYPE
@@ -119,7 +119,7 @@ class Service(metaclass=ServiceMeta):
             if name in self.filters and self._is_sortable_field(field)
         }
 
-    def _convert_filters(self, where: t.Dict[str, str]):
+    def _convert_filters(self, where: t.Dict[str, str]) -> t.List[Condition]:
         """
         解析过滤条件.
         e.g: where = {"id_": 1}
@@ -130,10 +130,12 @@ class Service(metaclass=ServiceMeta):
         Returns:
 
         """
+        fs = []
         for name, value in where.items():
-            yield convert_filters(value, self.filters[udlcase(name)])
+            fs.extend(convert_filters(value, self.filters[udlcase(name)]))
+        return fs
 
-    def _convert_sort(self, sort: t.Dict[str, bool]):
+    def _convert_sort(self, sort: t.Dict[str, bool]) -> t.List[tuple]:
         """
         解析排序条件.
         e.g： sort = {"id_":true,"name":false}
@@ -141,9 +143,11 @@ class Service(metaclass=ServiceMeta):
             sort: 排序字典
 
         """
+        sorts: t.List[tuple] = []
         for name, reverse in sort.items():
             field = self._sort_fields[name]
-            yield field, field.attribute or name, reverse
+            sorts.append((field, field.attribute or name, reverse))
+        return sorts
 
     def _is_sortable_field(self, field: ma_fields.Field):
         return isinstance(

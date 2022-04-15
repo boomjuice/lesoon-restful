@@ -1,10 +1,9 @@
 import marshmallow as ma
 import pytest
 
+from lesoon_restful import filters
 from lesoon_restful.exceptions import FilterNotAllow
-from lesoon_restful.exceptions import InvalidParam
 from lesoon_restful.filters import CommonFilters
-from lesoon_restful.filters import ContainsFilter
 from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import EqualFilter
 from lesoon_restful.filters import FILTERS_BY_FIELD
@@ -13,11 +12,10 @@ from lesoon_restful.filters import filters_for_field_class
 from lesoon_restful.filters import GreaterThanEqualFilter
 from lesoon_restful.filters import GreaterThanFilter
 from lesoon_restful.filters import InFilter
-from lesoon_restful.filters import legitimize_sort
-from lesoon_restful.filters import legitimize_where
 from lesoon_restful.filters import LessThanEqualFilter
 from lesoon_restful.filters import LessThanFilter
 from lesoon_restful.filters import NotEqualFilter
+from lesoon_restful.filters import NotInFilter
 from lesoon_restful.filters import NumberFilters
 
 
@@ -36,20 +34,22 @@ class TestFilters:
         field_filters = filters_for_field(ma.fields.Boolean)
         assert field_filters == {
             None: EqualFilter,
-            'eq': EqualFilter,
-            'ne': NotEqualFilter,
-            'in': InFilter
+            filters.Equal: EqualFilter,
+            filters.NotEqual: NotEqualFilter,
+            filters.In: InFilter,
+            filters.NotIn: NotInFilter
         }
         field_filters = filters_for_field(ma.fields.Decimal)
         assert field_filters == {
             None: EqualFilter,
-            'eq': EqualFilter,
-            'ne': NotEqualFilter,
-            'in': InFilter,
-            'lt': LessThanFilter,
-            'lte': LessThanEqualFilter,
-            'gt': GreaterThanFilter,
-            'gte': GreaterThanEqualFilter
+            filters.Equal: EqualFilter,
+            filters.NotEqual: NotEqualFilter,
+            filters.In: InFilter,
+            filters.NotIn: NotInFilter,
+            filters.LessThan: LessThanFilter,
+            filters.LessThanEqual: LessThanEqualFilter,
+            filters.GreaterThan: GreaterThanFilter,
+            filters.GreaterThanEqual: GreaterThanEqualFilter
         }
 
     def test_convert_filters(self):
@@ -59,9 +59,11 @@ class TestFilters:
             'eq': EqualFilter(name='eq', field=ma.fields.Int(), attribute='id')
         })
 
-        assert isinstance(condition.filter, EqualFilter)
-        assert condition.column == 'id'
-        assert condition.value == 1
+        assert len(condition) == 1
+        c = condition[0]
+        assert isinstance(c.filter, EqualFilter)
+        assert c.column == 'id'
+        assert c.value == 1
 
         with pytest.raises(FilterNotAllow):
             convert_filters({'$ne': 1}, {
@@ -80,29 +82,34 @@ class TestFilters:
                         name='ne', field=ma.fields.Int(), attribute='id')
             })
 
-        assert isinstance(condition.filter, EqualFilter)
-        assert condition.column == 'id'
-        assert condition.value == '123'
+        assert len(condition) == 1
+        c = condition[0]
+        assert isinstance(c.filter, EqualFilter)
+        assert c.column == 'id'
+        assert c.value == 123
 
-    def test_legitimize_where(self):
-        where = {'a': 1}
-        assert legitimize_where(where) == {'a': 1}
+        # more filters
+        condition = convert_filters({
+            '$lte': 1,
+            '$gte': 2
+        }, {
+            None:
+                EqualFilter(name='eq', field=ma.fields.Int(), attribute='id'),
+            'gte':
+                GreaterThanEqualFilter(
+                    name='gte', field=ma.fields.Int(), attribute='id'),
+            'lte':
+                LessThanEqualFilter(
+                    name='lte', field=ma.fields.Int(), attribute='id')
+        })
 
-        where = {'a_eq': 1}
-        assert legitimize_where(where) == {'a': {'$eq': 1}}
+        assert len(condition) == 2
+        c = condition[0]
+        assert isinstance(c.filter, LessThanEqualFilter)
+        assert c.column == 'id'
+        assert c.value == 1
 
-        where = {'a_in': [1, 2, 3]}
-        assert legitimize_where(where) == {'a': {'$in': [1, 2, 3]}}
-
-    def test_legitimize_sort(self):
-        sort = 'a'
-        assert legitimize_sort(sort) == {'a': False}
-
-        sort = 'a asc'
-        assert legitimize_sort(sort) == {'a': False}
-
-        sort = 'a asc,b desc'
-        assert legitimize_sort(sort) == {'a': False, 'b': True}
-
-        sort = {'a': False}
-        assert legitimize_sort(sort) == sort
+        c = condition[1]
+        assert isinstance(c.filter, GreaterThanEqualFilter)
+        assert c.column == 'id'
+        assert c.value == 2

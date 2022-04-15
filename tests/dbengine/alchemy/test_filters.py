@@ -1,4 +1,5 @@
 import json
+import typing as t
 from datetime import datetime
 from datetime import timedelta
 
@@ -119,6 +120,10 @@ class TestFilters(UnittestBase):
         assert response.result == self.schema.dump(self.books[2:3])
 
     def test_in(self):
+        where = {'rating': {'$in': '1,2,3'}}
+        response = self.client.get(f'/book?where={json.dumps(where)}')
+        assert response.result == self.schema.dump(self.books[2:])
+
         where = {'rating': {'$in': [1, 2, 3]}}
         response = self.client.get(f'/book?where={json.dumps(where)}')
         assert response.result == self.schema.dump(self.books[2:])
@@ -126,6 +131,15 @@ class TestFilters(UnittestBase):
         where = {'rating': {'$in': [1, 2, 3]}, 'yearPublished': {'$in': [3, 4]}}
         response = self.client.get(f'/book?where={json.dumps(where)}')
         assert response.result == self.schema.dump(self.books[2:4])
+
+    def test_nin(self):
+        where = {'rating': {'$notIn': '1,2,3'}}
+        response = self.client.get(f'/book?where={json.dumps(where)}')
+        assert response.result == self.schema.dump(self.books[:2])
+
+        where = {'rating': {'$notIn': [1, 2, 3]}}
+        response = self.client.get(f'/book?where={json.dumps(where)}')
+        assert response.result == self.schema.dump(self.books[:2])
 
     def test_contains(self):
         where = {'title': {'$contains': 'B'}}

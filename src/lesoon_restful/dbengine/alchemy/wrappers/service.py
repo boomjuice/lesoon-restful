@@ -1,3 +1,4 @@
+import typing
 import typing as t
 
 from lesoon_common.exceptions import ServiceError
@@ -15,8 +16,9 @@ from lesoon_restful.dbengine.alchemy.wrappers.dataclass import ImportParseResult
 from lesoon_restful.dbengine.alchemy.wrappers.utils import parse_import_data
 
 
-class SimpleAlchemyService(SQLAlchemyService):
+class UnionServiceMixin:
 
+    @t.no_type_check
     def union_operate(self,
                       insert_rows: t.List[dict],
                       update_rows: t.List[dict],
@@ -33,10 +35,14 @@ class SimpleAlchemyService(SQLAlchemyService):
         self.delete_many(ids=delete_rows, commit=False)
         self.commit_or_flush(commit)
 
+
+class ComplexServiceMixin:
+
     def before_import_data(self, param: 'ImportParam'):
         """ 导入数据前置操作. """
         pass
 
+    @t.no_type_check
     def before_import_insert_one(self, obj: 'Model', param: 'ImportParam'):
         """
         导入数据写库前操作.
@@ -59,6 +65,7 @@ class SimpleAlchemyService(SQLAlchemyService):
         """ 导入数据后置操作. """
         pass
 
+    @t.no_type_check
     def process_import_data(self, param: ImportParam,
                             parsed_result: ImportParseResult):
         """导入操作写库逻辑."""
@@ -74,6 +81,7 @@ class SimpleAlchemyService(SQLAlchemyService):
         parsed_result.obj_list = objs
         self.commit()
 
+    @t.no_type_check
     def import_data(self, param: ImportParam):
         """数据导入入口."""
         self.before_import_data(param=param)
@@ -106,12 +114,12 @@ class SimpleAlchemyService(SQLAlchemyService):
                 msg=f'导入成功: 成功条数[{len(parsed_result.obj_list)}]')
 
 
+class CommonServiceMixin(UnionServiceMixin, ComplexServiceMixin):
+    pass
+
+
 class SaasAlchemyService(SQLAlchemyService):
 
     def _query(self) -> LesoonQuery:
         query = super()._query()
         return query.filter_by(company_id=current_request.user.company_id)
-
-
-class SaasSimpleAlchemyService(SaasAlchemyService, SimpleAlchemyService):
-    pass

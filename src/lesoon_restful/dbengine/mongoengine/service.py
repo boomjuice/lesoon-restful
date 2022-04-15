@@ -15,8 +15,8 @@ class MongoEngineService(QueryService):
     A service for MongoEngine documents.
 
     """
-    FILTER_NAMES = FILTER_NAMES  # type:ignore
-    FILTERS_BY_FIELD = FILTERS_BY_FIELD  # type:ignore
+    FILTER_NAMES = FILTER_NAMES
+    FILTERS_BY_FIELD = FILTERS_BY_FIELD
 
     def _init_model(self):
         super()._init_model()

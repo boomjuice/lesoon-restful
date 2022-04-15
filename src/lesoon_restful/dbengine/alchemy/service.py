@@ -3,7 +3,6 @@ import typing as t
 from flask import current_app
 from flask_sqlalchemy import get_state
 from lesoon_common.dataclass.req import PageParam
-from lesoon_common.dataclass.resource import ImportData
 from lesoon_common.globals import request as current_request
 from lesoon_common.model.alchemy.base import Model
 from lesoon_common.model.alchemy.schema import ModelConverter
@@ -23,12 +22,13 @@ from lesoon_restful.dbengine.alchemy.filters import FILTERS_BY_FIELD
 from lesoon_restful.dbengine.alchemy.utils import parse_columns
 from lesoon_restful.dbengine.alchemy.utils import parse_query_related_models
 from lesoon_restful.filters import BaseFilter
+from lesoon_restful.filters import Condition
 from lesoon_restful.filters import convert_filters
 from lesoon_restful.filters import filters_for_field
-from lesoon_restful.filters import legitimize_sort
-from lesoon_restful.filters import legitimize_where
 from lesoon_restful.resource import ModelResource
 from lesoon_restful.service import QueryService
+from lesoon_restful.utils.filters import legitimize_sort
+from lesoon_restful.utils.filters import legitimize_where
 
 
 class SQLAlchemyService(QueryService):
@@ -71,9 +71,7 @@ class SQLAlchemyService(QueryService):
         models = parse_query_related_models(query=query)
         for model in models:
             where.extend(
-                list(
-                    self._convert_filters_by_model(where=where_dict,
-                                                   model=model)))
+                self._convert_filters_by_model(where=where_dict, model=model))
             sort.extend(
                 list(self._convert_sort_by_model(sort=sort_dict, model=model)))
 
@@ -83,8 +81,10 @@ class SQLAlchemyService(QueryService):
                          where=tuple(where),
                          sort=tuple(sort))
 
-    def _convert_filters_by_model(self, where: dict, model: Model):
+    def _convert_filters_by_model(self, where: dict,
+                                  model: Model) -> t.List[Condition]:
         columns = parse_columns(data=where, model=model)
+        fs = []
         for column, value in columns:
             field_cls = self.model_converter._get_field_class_for_column(  # noqa
                 column)
@@ -96,14 +96,14 @@ class SQLAlchemyService(QueryService):
                 name: filter_cls(name, field_cls(), column.name, column)
                 for name, filter_cls in field_filters.items()
             }
-
-            yield convert_filters(value, field_filters=filters)
+            fs.extend(convert_filters(value, field_filters=filters))
+        return fs
 
     @staticmethod
-    def _convert_sort_by_model(sort: t.Dict[str, bool], model: Model):
+    def _convert_sort_by_model(sort: t.Dict[str, bool],
+                               model: Model) -> t.List[tuple]:
         columns = parse_columns(data=sort, model=model)
-        for column, reverse in columns:
-            yield None, column.name, reverse
+        return [(None, c.name, r) for c, r in columns]
 
     @staticmethod
     def _get_session():
