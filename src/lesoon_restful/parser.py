@@ -1,7 +1,10 @@
 import functools
+import json
 import typing as t
 
 import marshmallow as ma
+from lesoon_common import RequestError
+from lesoon_common import ResponseCode
 from lesoon_common.schema import CamelSchema
 from lesoon_common.utils.str import camelcase
 from webargs.core import _UNKNOWN_DEFAULT_PARAM
@@ -133,6 +136,10 @@ class WebArgParser(FlaskParser):
             key = field.data_key or field.name
             new_data = {key: request.json}
             return self._makeproxy(new_data, schema)
+
+    def handle_error(self, error, req, schema, *, error_status_code,
+                     error_headers):
+        raise RequestError(msg=json.dumps(error.messages))
 
 
 class CamelArgParser(WebArgParser):

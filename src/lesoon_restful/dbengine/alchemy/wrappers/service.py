@@ -25,15 +25,21 @@ class UnionServiceMixin:
                       delete_rows: t.List[int],
                       commit: bool = True):
         """新增，更新，删除的联合操作."""
-        self.create_many(items=self.schema.load(insert_rows, many=True),
-                         commit=False)
-        self.update_many(items=[
-            self.read_or_raise(r.get(self.id_attribute)) for r in update_rows
-        ],
-                         changes=update_rows,
-                         commit=False)
-        self.delete_many(ids=delete_rows, commit=False)
-        self.commit_or_flush(commit)
+        if insert_rows:
+            self.create_many(items=self.schema.load(insert_rows, many=True),
+                             commit=False)
+        if update_rows:
+            self.update_many(items=[
+                self.read_or_raise(r.get(self.id_attribute))
+                for r in update_rows
+            ],
+                             changes=update_rows,
+                             commit=False)
+        if delete_rows:
+            self.delete_many(ids=delete_rows, commit=False)
+
+        if insert_rows or update_rows or delete_rows:
+            self.commit_or_flush(commit)
 
 
 class ComplexServiceMixin:
