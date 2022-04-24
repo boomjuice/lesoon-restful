@@ -77,9 +77,9 @@ class SQLAlchemyService(QueryService):
             sort.extend(
                 list(self._convert_sort_by_model(sort=sort_dict, model=model)))
 
-        return PageParam(page=page_param.page or request.page,
-                         page_size=page_param.page_size or request.page_size,
-                         if_page=page_param.if_page or request.if_page,
+        return PageParam(page=request.page,
+                         page_size=request.page_size,
+                         if_page=request.if_page,
                          where=tuple(where),
                          sort=tuple(sort))
 
