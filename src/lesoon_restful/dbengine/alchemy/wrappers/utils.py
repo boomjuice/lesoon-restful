@@ -74,7 +74,7 @@ def parse_import_data(import_data: ImportParam,
                         break
 
                 if attr.type.python_type in (decimal.Decimal, float):
-                    if not col_value.lstrip('-').replace(',', '', 1).isdigit():
+                    if not col_value.lstrip('-').replace('.', '', 1).isdigit():
                         parse_err_list.append(excel_position + '必须为数值')
                         flag = False
                         break
@@ -110,7 +110,8 @@ def parse_import_data(import_data: ImportParam,
                 obj_list.append(obj)
 
     except Exception as e:
-        raise ServiceError(ResponseCode.Error, f'导入数据异常:{str(e)}')
+        current_app.logger.exception(e)
+        raise ServiceError(msg=f'导入数据异常:{str(e)}')
 
     current_app.logger.info(f'解析成功的行数为:{len(obj_list)}')
     import_parse_result = ImportParseResult(obj_list, parse_err_list,

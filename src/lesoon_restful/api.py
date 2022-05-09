@@ -5,7 +5,7 @@ from functools import wraps
 from flask import Blueprint
 from flask import Flask
 from flask import request
-from werkzeug.wrappers import BaseResponse
+from werkzeug.wrappers import Response
 
 from .resource import ModelResource
 from .resource import Resource
@@ -117,7 +117,7 @@ class Api:
         def wrapper(*args, **kwargs):
             resp = view(*args, **kwargs)
 
-            if isinstance(resp, BaseResponse):
+            if isinstance(resp, Response):
                 return resp
 
             data, code, headers = unpack(resp)

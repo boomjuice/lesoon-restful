@@ -40,28 +40,26 @@ class ImportParam(BaseDataClass):
         'required': False,
         'load_default': None
     })
-    # 模块名
-    module: str = field(metadata={'required': False, 'load_default': ''})
-    # 拓展参数
-    params: t.Optional[dict] = field(metadata={
-        'required': False,
-        'load_default': None
-    })
-    # 导入接口
-    url: str = field(metadata={'required': False, 'load_default': ''})
-    # 导入文件名
-    file_name: str = field(metadata={'required': False, 'load_default': ''})
+    # # 模块名
+    # module: str = ''
+    # # 拓展参数
+    # params: t.Optional[dict] = field(metadata={
+    #     'required': False,
+    #     'load_default': None
+    # })
+    # # 导入接口
+    # url: str = ''
+    # # 导入文件名
+    # file_name: str = ''
     # 导入数据开始下标
-    import_start_index: int = field(metadata={
-        'required': False,
-        'load_default': 2
-    })
+    import_start_index: int = 2
 
     @ma.pre_load
     def pre_process(self, data, **kwargs):
         """预处理导入数据,检查数据合法性."""
         data['colNames'] = data['colNames'].strip('').split(',')
         data['mustArray'] = data['mustArray'].strip('').split(',')
+        data['importStartIndex'] = data['importStartIndex'] or 2
 
         if data.get('unionKey'):
             data['unionKey'] = data.get('unionKey').strip('').split(',')
