@@ -97,7 +97,8 @@ class ComplexServiceMixin:
         if parsed_result.parse_err_list:
             msg_detail = '数据异常<br/>' + '<br/>'.join(
                 parsed_result.parse_err_list)
-            return error_response(msg='导入异常,请根据错误信息检查数据', msg_detail=msg_detail)
+            return error_response(msg=f'导入异常,请根据错误信息检查数据\n {msg_detail}',
+                                  msg_detail=msg_detail)
 
         if not parsed_result.obj_list:
             msg_detail = '<br/>'.join(parsed_result.insert_err_list)
@@ -112,7 +113,8 @@ class ComplexServiceMixin:
             return error_response(
                 msg=f'导入结果: '
                 f'成功条数[{len(parsed_result.obj_list)}] '
-                f'失败条数[{len(parsed_result.insert_err_list)}]',
+                f'失败条数[{len(parsed_result.insert_err_list)}] \n'
+                f'失败信息：{msg_detail}',
                 msg_detail=f'失败信息:{msg_detail}',
             )
         else:
