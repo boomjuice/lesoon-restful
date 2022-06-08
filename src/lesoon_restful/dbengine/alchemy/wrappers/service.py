@@ -2,7 +2,7 @@ import typing
 import typing as t
 
 from lesoon_common.exceptions import ServiceError
-from lesoon_common.globals import request as current_request
+from lesoon_common.globals import current_user
 from lesoon_common.model.alchemy.base import Model
 from lesoon_common.response import error_response
 from lesoon_common.response import success_response
@@ -130,4 +130,4 @@ class SaasAlchemyService(SQLAlchemyService):
 
     def _query(self) -> LesoonQuery:
         query = super()._query()
-        return query.filter_by(company_id=current_request.user.company_id)
+        return query.filter_by(company_id=current_user.company_id)
