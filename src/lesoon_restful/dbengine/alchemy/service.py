@@ -110,7 +110,7 @@ class SQLAlchemyService(QueryService):
     @staticmethod
     def _get_session():
         session = get_state(current_app).db.session
-        if not session.is_active:
+        if not session._proxied.transaction: # noqa
             session.begin()
         return session
 
